@@ -19,7 +19,7 @@ Motor motor_rl(3,5);
 Motor motor_rr(4,6);
 Motor motor_fl(7,9);
 Motor motor_fr(8,10);
-
+Robot car(15,15);
 
 void setup() {
 }

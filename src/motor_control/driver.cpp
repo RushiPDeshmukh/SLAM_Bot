@@ -1,11 +1,10 @@
 #include "driver.h"
+#include <vector>
+using namespace std;
 
-Motor::Motor(int DIR, int EN, int car_widht, int car_height){
+Motor::Motor(int DIR, int EN){
     this->DIR = DIR;
     this->EN = EN;
-    this->car_height = car_height;
-    this->car_width = car_width;
-    this->model_matrix ={{-1,1,(this->car_width+this->car_height)},{1,1,-1*(this->car_width+this->car_height)},{-1,1, -1*(this->car_width+this->car_height)},{1,1,(this->car_width+this->car_height)}}
     pinMode(DIR, OUTPUT);
     pinMode(EN, OUTPUT);
     digitalWrite(DIR, LOW);
@@ -20,8 +19,21 @@ void Motor::setSpeed(int direction, int speed){
 
 }
 
-float[4][3] matMul(float state_vector[3]){
-    float result[4][1];
+Robot::Robot(int car_width,int car_height){
+    this->car_width = car_width;
+    this->car_height = car_height;
+    this->model_matrix = {{-1,1,(this->car_width+this->car_height)},{1,1,-1*(this->car_width+this->car_height)},{-1,1, -1*(this->car_width+this->car_height)},{1,1,(this->car_width+this->car_height)}}
+}
+
+vector<vector<float> > Robot::runModel(float Vx,float Vy, float W){ // Vx - velocity in x direction; Vy - velocity in y direction; w - angular velocity of robot
+    float state_vector[3] = {Vx,Vy,W};
+    float result[4][1] = matMul(state_vector);
+    return result;
+}
+
+
+vector<vector<float> > Robot::matMul(float state_vector[3]){
+    vector<vector<float> > result[4][1];
     for(int i=0;i<4;i++){
         for(int j=0;j<1;j++){
             result[i][j] =0;
@@ -31,10 +43,5 @@ float[4][3] matMul(float state_vector[3]){
         }
     }
     return result;
-}
-void Motor::runModel(float Vx,float Vy, float W){
-    float state_vector[3] = {Vx,Vy,W};
-    float result[4][1] = matMul(state_vector);
-    
 }
 
