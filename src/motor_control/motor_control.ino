@@ -26,54 +26,99 @@ void setup() {
 
 void loop() {
   //Front
-  motor_rl.setSpeed(1,100);
-  motor_rr.setSpeed(1,100);
-  motor_fl.setSpeed(1,100);
-  motor_fr.setSpeed(1,100);
+  motor_rl.setSpeed(1,150);
+  motor_rr.setSpeed(1,150);
+  motor_fl.setSpeed(1,150);
+  motor_fr.setSpeed(1,150);
   delay(5000);
   //stop
   motor_rl.setSpeed(0,0);
   motor_rr.setSpeed(0,0);
   motor_fl.setSpeed(1,0);
   motor_fr.setSpeed(1,0);
-  delay(5000);
+  delay(1000);
   //Backward
-  motor_rl.setSpeed(0,100);
-  motor_rr.setSpeed(0,100);
-  motor_fl.setSpeed(0,100);
-  motor_fr.setSpeed(0,100);
+  motor_rl.setSpeed(0,150);
+  motor_rr.setSpeed(0,150);
+  motor_fl.setSpeed(0,150);
+  motor_fr.setSpeed(0,150);
   delay(5000);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
   // 45 deg left
-  motor_rl.setSpeed(1,100);
+  motor_rl.setSpeed(1,150);
   motor_rr.setSpeed(1,0);
   motor_fl.setSpeed(1,0);
-  motor_fr.setSpeed(1,100);
+  motor_fr.setSpeed(1,150);
   delay(5000);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
   // 45 deg right
   motor_rl.setSpeed(1,0);
-  motor_rr.setSpeed(1,100);
-  motor_fl.setSpeed(1,100);
+  motor_rr.setSpeed(1,150);
+  motor_fl.setSpeed(1,150);
   motor_fr.setSpeed(1,0);
   delay(5000);
-  
-
-
-
-  /*
-  motor_rr.setSpeed(1,200);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
+  // 90 deg left
+  motor_rl.setSpeed(1,150);
+  motor_rr.setSpeed(0,150);
+  motor_fl.setSpeed(0,150);
+  motor_fr.setSpeed(1,150);
   delay(5000);
-  motor_rr.setSpeed(0,200);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
+  // 90 deg right
+  motor_rl.setSpeed(0,150);
+  motor_rr.setSpeed(1,150);
+  motor_fl.setSpeed(1,150);
+  motor_fr.setSpeed(0,150);
   delay(5000);
-  
-  motor_fl.setSpeed(1,200);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
+  // 135 deg left
+  motor_rl.setSpeed(0,150);
+  motor_rr.setSpeed(1,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(0,150);
   delay(5000);
-  motor_fl.setSpeed(0,200);
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
+  // 135 deg right
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(1,150);
+  motor_fl.setSpeed(1,150);
+  motor_fr.setSpeed(0,0);
   delay(5000);
-  
-  motor_fr.setSpeed(1,200);
-  delay(5000);
-  motor_fr.setSpeed(0,200);
-  delay(5000);
-  
-  */
+  //stop
+  motor_rl.setSpeed(0,0);
+  motor_rr.setSpeed(0,0);
+  motor_fl.setSpeed(1,0);
+  motor_fr.setSpeed(1,0);
+  delay(1000);
 }
