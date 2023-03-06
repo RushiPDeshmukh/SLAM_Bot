@@ -14,8 +14,9 @@ THis can be done by setting rules for disabling the firewall for certain IP addr
 
 Using this command on both machines will allow the ros nodes to see each others topics provided they are using the specific port.
   
-  
-  
+Sometimes the ROS_LOCALHOST_ONLY is set to 1 so topics will not be visible anywhere else. So we need to  
+  `export ROS_LOCALHOST_ONLY=0`  
+  and source the ros installation (`source /opt/ros/humble/setup.bash`)  
 
 Sources: 
  [1] https://stackoverflow.com/questions/75006253/ros2-on-multiple-machines-ros2-multicast-working-talker-listener-not-working
