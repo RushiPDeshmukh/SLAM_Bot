@@ -58,6 +58,7 @@ In a new terminal check the list of topics.
 ### Echo topic 
     ros2 topic echo /rp2040_imu_info_topic
   
+Note: If topic is not visible check value of ROS_DOMAIN_ID in bashrc since micro ros uses ROS_DOMAIN_ID = 0. 
 
 Resources:  
 [1] https://adityakamath.github.io/2022-06-19-microros-examples/  
