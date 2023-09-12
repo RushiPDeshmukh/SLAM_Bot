@@ -6,10 +6,10 @@ Limitations of Arduino Nano. STL libraries of C++ do not work on Arduino Nano.
 
 TODO: 
   1. IMU sensor callibration and data modeling (In-Progress)
-  2. IMU, wheel torque based RL agent to control the Robot.  
-  3. Simantic segmentation.  
+  2. IMU, wheel torque-based RL agent to control the Robot.  
+  3. Semantic segmentation.  
   4. Camera Calibration. 
-  5. Sterio SLAM.
+  5. Stereo SLAM.
   6. Motion Planning Stack for AV.
   7. Blogs on Microros, IMU data calibration.
  
