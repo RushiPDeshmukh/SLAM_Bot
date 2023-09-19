@@ -23,6 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'teleop = tele_op.keyboard_teleop:main',
         ],
     },
 )
