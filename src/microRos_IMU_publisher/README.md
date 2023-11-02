@@ -4,6 +4,8 @@ Original - A simple Micro-ROS publisher implementation with ESP-32 dev board &am
 ## Micro-ROS publisher with Nano RP2040 Connect 
 
 ### Micro ROS on Host (Linux) 
+#### Get micro-ros-setup package
+https://github.com/micro-ROS/micro_ros_setup.git
 #### Create agent
   ##### Download micro-ROS-Agent packages
     ros2 run micro_ros_setup create_agent_ws.sh
