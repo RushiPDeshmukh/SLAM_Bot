@@ -20,3 +20,8 @@ Sometimes the ROS_LOCALHOST_ONLY is set to 1 so topics will not be visible anywh
 
 Sources: 
  [1] https://stackoverflow.com/questions/75006253/ros2-on-multiple-machines-ros2-multicast-working-talker-listener-not-working
+
+
+### Micro-ROS limitations
+
+https://stackoverflow.com/questions/75473767/micro-ros-for-arduino-rpi-pico-multiple-publishers-issue
