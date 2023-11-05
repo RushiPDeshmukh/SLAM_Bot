@@ -56,8 +56,14 @@ The Arduino Nano RP2040 Connect is connected to host computer with a USB so seri
     ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0
 ![image](https://user-images.githubusercontent.com/94715242/219905559-a5b8892d-9ea5-4479-926b-c9e814b2274f.png)
 
- Note: If you get Open Device Error ( ErrNo 13 ), change permissions of /dev  
- sudo chmod -R 777 /dev -R
+ Note: If you get Open Device Error ( ErrNo 13 ), add your user to dialout group ( dialout has permissions to access the serial ports)
+
+ sudo usermod -a -G dialout your_username
+
+ To make sure the user is completely added, check the groups in terminal. 
+ `groups`  
+ This should give a list with 'dialout'. You might need to restart the system a few times until this group appears.
+ 
  
 ### Disconnect and connect the board
 ![image](https://user-images.githubusercontent.com/94715242/219905603-d9f27bff-201d-434a-8687-d9df25faeccc.png)
