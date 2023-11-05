@@ -25,3 +25,9 @@ Sources:
 ### Micro-ROS limitations
 
 https://stackoverflow.com/questions/75473767/micro-ros-for-arduino-rpi-pico-multiple-publishers-issue
+
+### SSH issues
+With new system if IP remains same, SSH connections will fail due to mismatch in host key
+
+Remove the entries from the known_hosts file. Steps are usually outlined when trying to connect to SSH through terminal (not VS code)
+  ssh-keygen -f "/home/jidnyesha/.ssh/known_hosts" -R "192.168.1.25"
