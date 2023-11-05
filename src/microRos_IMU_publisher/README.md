@@ -6,6 +6,13 @@ Original - A simple Micro-ROS publisher implementation with ESP-32 dev board &am
 ### Micro ROS on Host (Linux) 
 #### Get micro-ros-setup package
 https://github.com/micro-ROS/micro_ros_setup.git
+##### Summary:
+  `source /opt/ros/$ROS_DISTRO/setup.bash`  
+  `mkdir uros_ws && cd uros_ws`  
+  `git clone -b iron https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup`  
+  `rosdep update && rosdep install --from-paths src --ignore-src -y`    
+  `colcon build`    
+  `source install/local_setup.bash`   
 #### Create agent
   ##### Download micro-ROS-Agent packages
     ros2 run micro_ros_setup create_agent_ws.sh
