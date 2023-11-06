@@ -7,7 +7,9 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <sensor_msgs/msg/imu.h>
-#include <geometry_msgs/twist.h>
+#include <geometry_msgs/msg/twist.h>
+
+#include "driver.h"
 
 sensor_msgs__msg__Imu imu_msg;
 geometry_msgs__msg__Twist twist_msg;
@@ -36,8 +38,10 @@ void error_loop(){
 void command_callback(const void *msgin){
   const sensor_msgs__msg__Imu *command_msg = (const geometry_msgs__msg_Twist *)msgin;
 
-  // Process the received message.
-  // You can access data from the received message using command_msg->field_name.
+  // Use received velocity
+  // v_x , v_y , w_z --> lin.x , lin.y , ang.z
+  car.runModel(float(command_msg.linear.x),float(command_msg.linear.y),float(command_msg.angular.z))
+
 }
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
@@ -72,6 +76,15 @@ void setup() {
     }
   }
   Serial.println("IMU Initialized !");
+
+                       //-------  | DIR | EN(~)
+  Motor motor_rl(3,5); // Motor 1 | 3   | 5  ~  Rear Left 
+  Motor motor_rr(4,6); // Motor 2 | 4   | 6  ~  Rear Right
+  Motor motor_fl(7,9); // Motor 3 | 7   | 9  ~  Front Left
+  Motor motor_fr(8,10);// Motor 4 | 8   | 10 ~  Front Right
+  Robot car(15,15,motor_rl,motor_rr,motor_fl,motor_fr);
+  Serial.println("Car with motors Initialized !");
+
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "rp2040_imu_publisher_node", "", &support));

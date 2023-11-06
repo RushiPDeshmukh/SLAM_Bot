@@ -21,6 +21,8 @@ class Robot{
    Motor* motor_fl;
    Motor* motor_fr;
 
+   int multiplier = 700;
+
   public:
     Robot(int car_width,int car_height, Motor& motor_rl, Motor& motor_rr, Motor& motor_fl,Motor& motor_fr);
     void runModel(float Vx,float Vy,float W);

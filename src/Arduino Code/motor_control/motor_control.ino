@@ -7,11 +7,11 @@
 9,10 PWM
 
 
-------- | DIR | EN
-Motor 1 | 3   | 5   Rear Left 
-Motor 2 | 4   | 6   Rear Right
-Motor 3 | 7   | 9   Front Left
-Motor 4 | 8   | 10  Front Right
+------- | DIR | EN(~)
+Motor 1 | 3   | 5  ~  Rear Left 
+Motor 2 | 4   | 6  ~  Rear Right
+Motor 3 | 7   | 9  ~  Front Left
+Motor 4 | 8   | 10 ~  Front Right
 
 */
 
