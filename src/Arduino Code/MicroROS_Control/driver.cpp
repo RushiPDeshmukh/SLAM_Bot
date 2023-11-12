@@ -27,7 +27,7 @@ Robot::Robot(int car_width,int car_height, Motor& motor_rl, Motor& motor_rr, Mot
 }
 
 void Robot::runModel(float Vx,float Vy, float W){ // Vx - velocity in x direction; Vy - velocity in y direction; w - angular velocity of robot
-    float state_vector[3] = {Vx,Vy,W};
+    float state_vector[3] = {W,Vx,Vy};
     float result[4][1];
     float model_mat[4][3] = {{-1,1,(this->car_width+this->car_height)},{1,1,-1*(this->car_width+this->car_height)},{-1,1, -1*(this->car_width+this->car_height)},{1,1,(this->car_width+this->car_height)}};
     for(int i=0;i<4;i++){

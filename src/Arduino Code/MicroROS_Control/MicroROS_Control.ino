@@ -23,6 +23,13 @@ rcl_subscription_t subscriber;
 
 float Ax, Ay, Az, Gx, Gy, Gz;
 
+                    //-------  | DIR | EN(~)
+Motor motor_rl(3,5); // Motor 1 | 3   | 5  ~  Rear Left 
+Motor motor_rr(4,6); // Motor 2 | 4   | 6  ~  Rear Right
+Motor motor_fl(7,9); // Motor 3 | 7   | 9  ~  Front Left
+Motor motor_fr(8,10);// Motor 4 | 8   | 10 ~  Front Right
+Robot car(15,15,motor_rl,motor_rr,motor_fl,motor_fr);
+
 #define LED_PIN 13
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
@@ -36,11 +43,11 @@ void error_loop(){
 }
 
 void command_callback(const void *msgin){
-  const sensor_msgs__msg__Imu *command_msg = (const geometry_msgs__msg_Twist *)msgin;
+  const geometry_msgs__msg__Twist *command_msg = (const geometry_msgs__msg__Twist *)msgin;
 
   // Use received velocity
   // v_x , v_y , w_z --> lin.x , lin.y , ang.z
-  car.runModel(float(command_msg.linear.x),float(command_msg.linear.y),float(command_msg.angular.z))
+  car.runModel(float(command_msg->linear.x),float(command_msg->linear.y),float(command_msg->angular.z));
 
 }
 
@@ -69,6 +76,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 
 void setup() {
   set_microros_transports();
+  // set_microros_wifi_transports("26_3 Vinson", "BellHill#7$", "192.168.1.25", 8888);
   if (!IMU.begin()) {
     Serial.println("Failed to initialize RP2040 IMU.");
     while (1) {
@@ -76,13 +84,6 @@ void setup() {
     }
   }
   Serial.println("IMU Initialized !");
-
-                       //-------  | DIR | EN(~)
-  Motor motor_rl(3,5); // Motor 1 | 3   | 5  ~  Rear Left 
-  Motor motor_rr(4,6); // Motor 2 | 4   | 6  ~  Rear Right
-  Motor motor_fl(7,9); // Motor 3 | 7   | 9  ~  Front Left
-  Motor motor_fr(8,10);// Motor 4 | 8   | 10 ~  Front Right
-  Robot car(15,15,motor_rl,motor_rr,motor_fl,motor_fr);
   Serial.println("Car with motors Initialized !");
 
   allocator = rcl_get_default_allocator();
@@ -99,14 +100,13 @@ void setup() {
     &subscriber,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-    "cmd_vel",
-    command_callback
+    "cmd_vel"
   ));
   
-  RCCHECK(rclc_executor_add_subscription(&executor, &subscriber);  // Add the subscriber to the executor.
+  RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &twist_msg, &command_callback, ON_NEW_DATA));  // Add the subscriber to the executor.
 }
 
 void loop() {
   delay(100);
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
-}
+  }
