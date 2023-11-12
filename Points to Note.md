@@ -31,3 +31,7 @@ With new system if IP remains same, SSH connections will fail due to mismatch in
 
 Remove the entries from the known_hosts file. Steps are usually outlined when trying to connect to SSH through terminal (not VS code)
   ssh-keygen -f "/home/jidnyesha/.ssh/known_hosts" -R "192.168.1.25"
+
+
+## Sending Twist over CMD
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist '{linear: {x: 0.0, y: 0.1, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
