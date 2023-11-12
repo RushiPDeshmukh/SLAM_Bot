@@ -1,0 +1,27 @@
+
+
+Robot to Motor Driver
+_____________________________
+Robot        | Motor Driver  |
+_____________|_______________|
+Rear Left    |     M1        |
+Rear Right   |     M2        |
+Front Left   |     M3        |
+Front Right  |     M4        |
+_____________________________
+
+Motor Driver To Arduino Nano RP2040
+____________________________________________
+Motor Driver   | Arduino Nano  | Label      |
+_______________|_______________|____________|
+    1          |      3        | M1 Dir     |
+    2          |      5 ~      | M1 Speed   |
+    3          |      4        | M2 Dir     |
+    4          |      6 ~      | M2 Speed   |
+    5          |      7        | M3 Dir     |
+    6          |      9 ~      | M3 Speed   |
+    7          |      8        | M4 Dir     |
+    8          |     10 ~      | M4 Speed   |
+    V          |     Vin       | Vin        |
+    G          |     GND       | GND        |
+____________________________________________
