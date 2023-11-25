@@ -90,7 +90,7 @@ void setup() {
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "rp2040_imu_publisher_node", "", &support));
   RCCHECK(rclc_publisher_init_default(&publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu), "rp2040_imu_info_topic"));
-  const unsigned int timer_timeout = 1000;
+  const unsigned int timer_timeout = 100;
   RCCHECK(rclc_timer_init_default(&timer, &support, RCL_MS_TO_NS(timer_timeout), timer_callback));
   RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));  // Increased the number of subscriptions to 2.
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
