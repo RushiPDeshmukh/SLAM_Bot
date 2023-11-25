@@ -67,7 +67,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     imu_msg.angular_velocity.x = Gx;
     imu_msg.angular_velocity.y = Gy;
     imu_msg.angular_velocity.z = Gz;
-    imu_msg.header.stamp.sec = 
+    
 
     // Publish the updated IMU message.
     RCSOFTCHECK(rcl_publish(&publisher, &imu_msg, NULL));
