@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "calibrate=imu_sensor.imu_calibration:main"
         ],
     },
 )
