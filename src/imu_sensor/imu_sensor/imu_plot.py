@@ -1,54 +1,77 @@
 import rclpy
 from rclpy.node import Node
-import matplotlib.pyplot as plt
 from sensor_msgs.msg import Imu
+import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import numpy as np
 
-class IMU_Plot(Node):
+class ImuPlotNode(Node):
     def __init__(self):
-        super().__init__('live_plot_node')
-        self.raw_data_subscriber = self.create_subscription(Imu,'rp2040_imu_info_topic',self.raw_data_callback,10)
+        super().__init__('imu_plot_node')
+        self.raw_imu_subscription = self.create_subscription(
+            Imu,
+            'rp2040_imu_raw',  # Replace with your actual raw IMU topic
+            self.raw_imu_callback,
+            10
+        )
+        self.raw_imu_subscription  # Prevent unused variable warning
 
-        # Initialize the plot
+        self.calibrated_imu_subscription = self.create_subscription(
+            Imu,
+            'imu',  # Replace with your actual calibrated IMU topic
+            self.calibrated_imu_callback,
+            10
+        )
+        self.calibrated_imu_subscription  # Prevent unused variable warning
+
         self.fig, self.ax = plt.subplots()
-        self.x_data, self.y_data = [], []
-        self.line, = self.ax.plot(self.x_data, self.y_data, label='IMU')
+        self.time_data = []
+        self.raw_data = {'x': [], 'y': [], 'z': []}
+        self.calibrated_data = {'x': [], 'y': [], 'z': []}
+
+        self.line_raw, = self.ax.plot([], [], label='Raw IMU')
+        self.line_calibrated, = self.ax.plot([], [], label='Calibrated IMU')
+
         self.ax.set_xlabel('Time')
-        self.ax.set_ylabel('Value')
+        self.ax.set_ylabel('Acceleration')
         self.ax.legend()
 
-    def callback(self, msg):
-        # Update the plot with new data
-        self.x_data.append(self.x_data[-1] + 1 if self.x_data else 0)  # Incremental x-axis
-        self.y_data.append(msg.data)
+    def raw_imu_callback(self, msg):
+        self.time_data.append(self.get_clock().now().to_msg().sec)  # Use timestamp as x-axis data
+        self.raw_data['x'].append(msg.linear_acceleration.x)
+        self.raw_data['y'].append(msg.linear_acceleration.y)
+        self.raw_data['z'].append(msg.linear_acceleration.z)
 
-        # Keep a fixed number of points on the plot (adjust as needed)
-        max_points = 100
-        if len(self.x_data) > max_points:
-            self.x_data = self.x_data[-max_points:]
-            self.y_data = self.y_data[-max_points:]
+        self.update_plot()
 
-        # Update the plot data
-        self.line.set_data(self.x_data, self.y_data)
+    def calibrated_imu_callback(self, msg):
+        self.calibrated_data['x'].append(msg.linear_acceleration.x)
+        self.calibrated_data['y'].append(msg.linear_acceleration.y)
+        self.calibrated_data['z'].append(msg.linear_acceleration.z)
 
-    def run(self):
-        # Set up the animation
-        ani = FuncAnimation(self.fig, self.animate, interval=100)
-        plt.show()
+        self.update_plot()
 
-    def animate(self, frame):
-        # Animation function (used by FuncAnimation)
-        pass  # This function is empty since the plot is updated in the callback
+    def update_plot(self):
+        max_points = 100  # Adjust the number of points displayed on the plot
 
+        if len(self.time_data) > max_points:
+            self.time_data = self.time_data[-max_points:]
+            for axis in ['x', 'y', 'z']:
+                self.raw_data[axis] = self.raw_data[axis][-max_points:]
+                self.calibrated_data[axis] = self.calibrated_data[axis][-max_points:]
+
+        self.line_raw.set_data(self.time_data, self.raw_data['x'])  # Display data for the 'x' axis
+        self.line_calibrated.set_data(self.time_data, self.calibrated_data['x'])
+
+        self.ax.relim()
+        self.ax.autoscale_view()
 
 def main():
     rclpy.init()
-    node = IMU_Plot()
-    node.run()
+    node = ImuPlotNode()
+    ani = FuncAnimation(node.fig, node.update_plot, interval=100)
+    plt.show()
     rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
