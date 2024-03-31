@@ -22,12 +22,18 @@ rcl_timer_t timer;
 rcl_subscription_t subscriber;
 
 float Ax, Ay, Az, Gx, Gy, Gz;
+//
+//------- | DIR | EN(~)
+//Motor 1 | 3   | 5  ~  Front Right
+//Motor 2 | 4   | 6  ~  Front Left
+//Motor 3 | 7   | 9  ~  Rear Right
+//Motor 4 | 8   | 10 ~  Rear Left
+//
 
-                    //-------  | DIR | EN(~)
-Motor motor_rl(3,5); // Motor 1 | 3   | 5  ~  Rear Left 
-Motor motor_rr(4,6); // Motor 2 | 4   | 6  ~  Rear Right
-Motor motor_fl(7,9); // Motor 3 | 7   | 9  ~  Front Left
-Motor motor_fr(8,10);// Motor 4 | 8   | 10 ~  Front Right
+Motor motor_rl(8,10);
+Motor motor_rr(7,9);
+Motor motor_fl(4,6);
+Motor motor_fr(3,5);
 Robot car(15,15,motor_rl,motor_rr,motor_fl,motor_fr);
 
 #define LED_PIN 13
