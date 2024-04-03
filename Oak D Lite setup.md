@@ -6,6 +6,21 @@
 
 `python3 -m pip install depthai`
 
+#### Setup for Laptop
+1. Clone DepthAi repository from Luxonis  
+   `git clone https://github.com/luxonis/depthai.git`
+2. Create a virtual environment for the installation  
+   `python3 -m venv myvenv`
+3. Start the virtual env  
+   `source myvenv/bin/activate`
+4. Install dependencies in virtual env  
+   `python3 install_requirements.py`
+5. Run demo  
+   `python3 depthai_demo.py`
+
+
+
+
 References
 [1] https://docs.luxonis.com/projects/api/en/latest/index.html
 [2] https://robofoundry.medium.com/oak-d-lite-camera-basic-setup-38a563cd594f
