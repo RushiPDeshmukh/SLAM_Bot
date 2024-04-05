@@ -19,9 +19,9 @@
    `python3 depthai_demo.py`
 
 
-
+#### Specs for Oak D Lite : [Oak D Lite](https://docs.luxonis.com/projects/hardware/en/latest/pages/DM9095/#dm9095)  
 
 References
-[1] https://docs.luxonis.com/projects/api/en/latest/index.html
-[2] https://robofoundry.medium.com/oak-d-lite-camera-basic-setup-38a563cd594f
-[3] https://robofoundry.medium.com/oak-d-lite-camera-ros2-setup-1e74ed03350d
+[1] https://docs.luxonis.com/projects/api/en/latest/index.html  
+[2] https://robofoundry.medium.com/oak-d-lite-camera-basic-setup-38a563cd594f  
+[3] https://robofoundry.medium.com/oak-d-lite-camera-ros2-setup-1e74ed03350d  
