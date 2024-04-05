@@ -11,6 +11,7 @@ class RGBDSubscriber(Node):
         super().__init__('rgbd_subscriber')
         self.rgbd_subscriber = self.create_subscription(RGBD,'rgbd_frame',self.get_frame,10)
         self.bridge=CvBridge()
+        self.depth_frame_copy=None
 
     def get_frame(self,msg):
         try:
@@ -19,7 +20,8 @@ class RGBDSubscriber(Node):
             self.get_logger().error("RGB frame CV Bridge failed: "+str(e1))
         
         try:
-            depth_frame = self.bridge.imgmsg_to_cv2(msg.depth,'8UC1')
+            depth_frame = self.bridge.imgmsg_to_cv2(msg.depth,'32FC1')
+            self.depth_frame_copy = depth_frame
         except CvBridgeError as e2:
             self.get_logger().error("Depth frame CV Bridge failed: "+str(e2))
         
@@ -28,11 +30,34 @@ class RGBDSubscriber(Node):
             cv2.imshow("rgb",rgb_frame)
         if depth_frame is not None:       
             cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
-            cv2.imshow("depth",depth_frame)
+            cv2.setMouseCallback("depth", self.on_mouse_click)
+            cv2.imshow("depth",depth_frame*100)
+            
 
+            # y=652
+            # self.get_logger().info(f'Depth of x: {x}, y:{y} == {(depth_frame[y][x])}')
         if cv2.waitKey(1)==ord('q'):
             raise SystemExit
         
+    def on_mouse_click(self, event, x, y, flags, param):
+        """
+        Callback function for mouse click events.
+
+        Args:
+        - event: The type of mouse event (e.g., cv2.EVENT_LBUTTONDOWN).
+        - x: The x-coordinate of the mouse click.
+        - y: The y-coordinate of the mouse click.
+        - flags: Additional flags (not used).
+        - param: Additional parameters (not used).
+
+        Returns:
+        - None
+        """
+        if event == cv2.EVENT_LBUTTONDOWN:
+            # Print the depth value at the clicked point
+            depth_value = self.depth_frame_copy[y][x]
+            self.get_logger().info(f"Depth value at point ({x}, {y}): {depth_value}")
+
 def main(args=None):
     rclpy.init(args=args)
     rgbd_subscriber = RGBDSubscriber()
