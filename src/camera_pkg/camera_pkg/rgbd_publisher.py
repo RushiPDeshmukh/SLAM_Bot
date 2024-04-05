@@ -13,6 +13,12 @@ class RGBDPublisher(Node):
         self.bridge = CvBridge()
         self.timer = self.create_timer(1.0, self.publish_rgbd_image)
 
+        # OAK D LITE  Depth calibration
+        img_width_px = 480 
+        horizontal_fov = 73 # deg
+        self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
+        self.baseline = 0.075 # m
+        
         fps = 30
         # The disparity is computed at this resolution, then upscaled to RGB resolution
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_480_P
@@ -100,17 +106,27 @@ class RGBDPublisher(Node):
                     if 1: frameDisp = (frameDisp * 255. / maxDisparity).astype(np.uint8)
                     
                 if frameDisp is not None and frameRgb is not None:
-                    self.publish_rgbd_image(frameRgb,frameDisp)
+                    frameDepth=self.dispToDepth(frameDisp)
+                    self.publish_rgbd_image(frameRgb,frameDepth)
                     frameDisp = None
                     frameRgb = None
                 
+    def dispToDepth(self,disp_frame):
+        """ OAK D LITE Stereo pair 
+            img_width = 480 pixels
+            HFOV = 73 degrees 
+            baseline = 7.5 cm
+        """
+        depth_frame = ((self.focal_len_px*self.baseline)/disp_frame).astype(np.float32)
+        self.get_logger().info(f'{np.shape(disp_frame)},{np.shape(depth_frame)}, {depth_frame[0][1]}')
+        return depth_frame  
 
     def publish_rgbd_image(self, rgb_image, depth_image):
         # Convert RGB image to ROS Image message
         rgb_msg = self.bridge.cv2_to_imgmsg(rgb_image, encoding="bgr8")
 
         # Convert depth image to ROS Image message
-        depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="8UC1")
+        depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1") #8UC1 64FC1
 
         # Create a new RGBD image message
         rgbd_msg = RGBD()
