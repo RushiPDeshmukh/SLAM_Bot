@@ -20,6 +20,8 @@
 
 
 #### Specs for Oak D Lite : [Oak D Lite](https://docs.luxonis.com/projects/hardware/en/latest/pages/DM9095/#dm9095)  
+![image](https://github.com/RushiPDeshmukh/SLAM_Bot/assets/94715242/3f319fb6-dbab-4ad5-910b-6d233c57b40c)
+
 
 References
 [1] https://docs.luxonis.com/projects/api/en/latest/index.html  
