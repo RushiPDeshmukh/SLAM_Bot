@@ -76,9 +76,7 @@ class RGBDPublisher(Node):
         # stereo_config.postProcessing.thresholdFilter.minRange =  # Threshold Filter
         # stereo_config.postProcessing.thresholdFilter.maxRange =  
         self.stereo.initialConfig.set(stereo_config)
-        self.stereo.setExtendedDisparity(True)
-        
-        
+        # self.stereo.setExtendedDisparity(True)
         
 
         # Linking
