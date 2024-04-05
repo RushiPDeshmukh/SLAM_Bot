@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             "rgbd_pub=camera_pkg.rgbd_publisher:main",
-            "rgbd_sub=camera_pkg.rgbd_subscriber:main"
+            "rgbd_sub=camera_pkg.rgbd_subscriber:main",
+            "save_frames=camera_pkg.frame_saver:main"
         ],
     },
 )

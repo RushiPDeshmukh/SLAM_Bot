@@ -84,3 +84,6 @@ AMENT_IGNORE
 
 # VSCode
 *.vscode 
+
+# Images
+images/
