@@ -81,3 +81,6 @@ qtcreator-*
 # Colcon custom files
 COLCON_IGNORE
 AMENT_IGNORE
+
+# VSCode
+*.vscode 
