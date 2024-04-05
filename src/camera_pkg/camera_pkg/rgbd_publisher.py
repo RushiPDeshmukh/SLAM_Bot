@@ -1,4 +1,5 @@
 import rclpy
+import rclpy.logging
 from rclpy.node import Node
 from camera_msgs.msg import RGBD
 from cv_bridge import CvBridge
@@ -60,12 +61,26 @@ class RGBDPublisher(Node):
         self.right.setResolution(monoResolution)
         self.right.setCamera("right")
         self.right.setFps(fps)
-        self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+        self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
         # LR-check is required for depth alignment
         self.stereo.setLeftRightCheck(True)
-        self.stereo.setDepthAlign(rgbCamSocket)
+        self.stereo.setDepthAlign(rgbCamSocket)        
+
+        ## Filters
+        stereo_config= self.stereo.initialConfig.get()
+        stereo_config.postProcessing.speckleFilter.enable=True # Speckle Filter
+        stereo_config.postProcessing.speckleFilter.speckleRange=50
+        stereo_config.postProcessing.spatialFilter.enable=True # Spatial Filter
+        stereo_config.postProcessing.spatialFilter.holeFillingRadius=2
+        stereo_config.postProcessing.spatialFilter.numIterations=1
+        # stereo_config.postProcessing.thresholdFilter.minRange =  # Threshold Filter
+        # stereo_config.postProcessing.thresholdFilter.maxRange =  
+        self.stereo.initialConfig.set(stereo_config)
+        self.stereo.setExtendedDisparity(True)
         
         
+        
+
         # Linking
         self.camRgb.video.link(self.rgbOut.input)
         self.left.out.link(self.stereo.left)
@@ -103,7 +118,7 @@ class RGBDPublisher(Node):
                     frameDisp = latestPacket["disp"].getFrame()
                     maxDisparity = self.stereo.initialConfig.getMaxDisparity()
                     # Optional, extend range 0..95 -> 0..255, for a better visualisation
-                    if 1: frameDisp = (frameDisp * 255. / maxDisparity).astype(np.uint8)
+                    # if 1: frameDisp = (frameDisp * 255. / maxDisparity).astype(np.uint8)
                     
                 if frameDisp is not None and frameRgb is not None:
                     frameDepth=self.dispToDepth(frameDisp)
@@ -148,7 +163,10 @@ class RGBDPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
     rgbd_publisher = RGBDPublisher()
-    rclpy.spin(rgbd_publisher)
+    try:
+        rclpy.spin(rgbd_publisher)
+    except KeyboardInterrupt:
+        rclpy.logging.get_logger("Quitting").info('Done')
     rgbd_publisher.destroy_node()
     rclpy.shutdown()
 
