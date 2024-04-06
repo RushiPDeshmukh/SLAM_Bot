@@ -16,12 +16,12 @@ class FrameSaver(Node):
         self.rgbd_subscriber = self.create_subscription(RGBD,'rgbd_frame',self.get_frame,10)
         self.bridge=CvBridge()
         self.depth_frame_copy=None
-        try:
-            os.mkdir(CWD_PATH+"/images")
-            os.mkdir(PATH+"/rgb")
-            os.mkdir(PATH+"/depth")
-        except OSError as err:
-            self.get_logger().info(err)
+        # try:
+        #     os.mkdir(CWD_PATH+"/images")
+        #     os.mkdir(PATH+"/rgb")
+        #     os.mkdir(PATH+"/depth")
+        # except OSError as err:
+        #     self.get_logger().info(err)
         self.get_logger().info(f'Saving images to {PATH}')
 
     def get_frame(self,msg):

@@ -20,7 +20,7 @@ class RGBDPublisher(Node):
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 30
+        fps = 15  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_480_P
 
