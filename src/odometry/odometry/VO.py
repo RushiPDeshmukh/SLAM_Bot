@@ -14,36 +14,38 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 import os
+from tqdm import tqdm
+# from attrdict import AttrDict
 
 
-np.random.seed(1)
-np.set_printoptions(threshold=np.nan)
 
 def get_data(folder_path):
    
     dataset_handler = {}
 
     #loading images
-    datahandler['images_rgb'] = []
-    datahandler['images'] = []
-    for filename in os.listdir(folder_path):
+    dataset_handler['images_rgb'] = []
+    dataset_handler['images'] = []
+    for filename in tqdm(sorted(os.listdir(folder_path+'/rgb'))):
         img = cv2.imread(os.path.join(folder_path+'/rgb',filename))
-        img = cv2.rotate(img,cv2.ROTATE_180)
-        img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        
         if img is not None:
-            datahandler['images_rgb'].append(img)
-            datahandler['images'].append(img_gray)
+            img = cv2.rotate(img,cv2.ROTATE_180)
+            img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            dataset_handler['images_rgb'].append(img)
+            dataset_handler['images'].append(img_gray)
     #loading depth_maps
-    datahandler['depth_maps'] = []
-    for filename in os.listdir(folder_path):
+    dataset_handler['depth_maps'] = []
+    for filename in tqdm(sorted(os.listdir(folder_path+'/depth'))):
         depth_map = cv2.imread(os.path.join(folder_path+'/depth',filename))
-        depth_map = cv2.rotate(depth_map,cv2.ROTATE_180)
+        
         if img is not None:
-            datahandler['depth_maps'].append(depth_map)
+            depth_map = cv2.rotate(depth_map,cv2.ROTATE_180)
+            dataset_handler['depth_maps'].append(depth_map)
     
 
     #k parameter
-    datahandler['k'] = 
+    dataset_handler['k'] = [[2994.451171875, 0.0, 2016.2567138671875], [0.0, 2994.451171875, 1080.2032470703125], [0.0, 0.0, 1.0]]
     return dataset_handler
 
 
@@ -59,7 +61,7 @@ def extract_features(image):
     des -- list of the keypoint descriptors in an image
     """
     ### START CODE HERE ### 
-    sift = cv2.xfeatures2d_SIFT.create()
+    sift = cv2.SIFT_create()
     kp,des = sift.detectAndCompute(image,None)
     
 #     xkp, des = orb.detectAndCompute(image,None)
@@ -80,6 +82,7 @@ def visualize_features(image, kp):
     display = cv2.drawKeypoints(image, kp, None)
     plt.figure(figsize=(16,12),dpi=100)
     plt.imshow(display)
+    plt.show()
 
 def extract_features_dataset(images, extract_features_function):
     """
@@ -98,7 +101,7 @@ def extract_features_dataset(images, extract_features_function):
     des_list = []
     
     ### START CODE HERE ###
-    for i in range(len(images)):
+    for i in tqdm(range(len(images))):
         
         kp,des = extract_features_function(images[i])
         kp_list.append(kp)
@@ -180,6 +183,7 @@ def visualize_matches(image1, kp1, image2, kp2, match):
     image_matches = cv2.drawMatches(image1,kp1,image2,kp2,match,None,flags=2)
     plt.figure(figsize=(16, 6), dpi=100)
     plt.imshow(image_matches)
+    plt.show()
 
 
 def match_features_dataset(des_list, match_features):
@@ -199,7 +203,7 @@ def match_features_dataset(des_list, match_features):
     prev_des = des_list[0]
     
     ### START CODE HERE ###
-    for i in range(1,len(des_list)):
+    for i in tqdm(range(1,len(des_list))):
         match = match_features(prev_des,des_list[i])
         matches.append(match)
         prev_des = des_list[i]
@@ -228,7 +232,7 @@ def filter_matches_dataset(filter_matches_distance, matches, dist_threshold):
     filtered_matches = []
     
     ### START CODE HERE ###
-    for match in matches:
+    for match in tqdm(matches):
         filtered_matches.append(filter_matches_distance(match,dist_threshold))
 
     
@@ -266,13 +270,14 @@ def estimate_motion(match, kp1, kp2, k, depth1=None):
     objectpoints = []
     
     # Iterate through the matched features
-    for m in match:
+    for m in tqdm(match):
         # Get the pixel coordinates of features f[k - 1] and f[k]
         u1, v1 = kp1[m.queryIdx].pt
         u2, v2 = kp2[m.trainIdx].pt
         
         # Get the scale of features f[k - 1] from the depth map
         s = depth1[int(v1), int(u1)]
+        print(s)
         
         # Check for valid scale values
         if s < 1000:
@@ -365,27 +370,50 @@ def estimate_trajectory(estimate_motion, matches, kp_list, k, depth_maps=[]):
 if __name__ == "__main__":
     
     # Part 1. Features Extraction
-    folder_path = ""
-    datahandler = get_data(folder_path)
+    CWD_PATH = os.path.abspath(os.getcwd())
+    PATH=CWD_PATH+'/images'
+    
+    print("Loading images")
+    dataset_handler = get_data(PATH)
 
-    images = datahandler.images
+    image = dataset_handler["images"][0]
+    print('imgs_loaded',str(np.shape(image)))
+    # cv2.namedWindow("grayscale",cv2.WINDOW_NORMAL)
+    # cv2.imshow("grayscale",image)
+
+    image_rgb = dataset_handler["images_rgb"][0]
+    # cv2.namedWindow("rgb",cv2.WINDOW_NORMAL)
+    # cv2.imshow("rgb",image_rgb)
+
+    i = 0
+    depth = dataset_handler["depth_maps"][i]
+    print(np.unique(depth))
+    # cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
+    # cv2.imshow("depth",depth)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    images = dataset_handler["images"]
+    print("Extracting Features")
     kp_list, des_list = extract_features_dataset(images, extract_features)
-
-
-    # Part II. Feature Matching
+    
+    # visualize_features(images[0],kp_list[0])
+    # # Part II. Feature Matching
+    print("Matching features")
     matches = match_features_dataset(des_list, match_features)
+    # visualize_matches(images[0],kp_list[0],images[1],kp_list[1],matches[0])
 
-    # Set to True if you want to use filtered matches or False otherwise
+    print("Filtering features")
     is_main_filtered_m = False
     if is_main_filtered_m:
         dist_threshold = 0.75
         filtered_matches = filter_matches_dataset(filter_matches_distance, matches, dist_threshold)
         matches = filtered_matches
-
         
     # Part III. Trajectory Estimation
-    depth_maps = datahandler.depth_maps
-    k = datahandler.k
+    print("Estimating trajectory")
+    depth_maps = dataset_handler['depth_maps']
+    k = dataset_handler['k']
     trajectory = estimate_trajectory(estimate_motion, matches, kp_list, k, depth_maps=depth_maps)
 
     print("Trajectory X:\n {0}".format(trajectory[0,:].reshape((1,-1))))

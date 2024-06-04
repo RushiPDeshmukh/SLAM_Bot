@@ -32,6 +32,7 @@ class FrameSaver(Node):
         
         try:
             depth_frame = self.bridge.imgmsg_to_cv2(msg.depth,'32FC1')
+            self.get_logger().info(f'Depth frame size {np.shape(depth_frame)} {len(np.unique(depth_frame))}')
             self.depth_frame_copy = depth_frame
         except CvBridgeError as e2:
             self.get_logger().error("Depth frame CV Bridge failed: "+str(e2))
@@ -40,12 +41,12 @@ class FrameSaver(Node):
             rgb_filename = "rgb_"+curr_datetime+".jpg"
             rgb_filepath = PATH+"/rgb"
             cv2.imwrite(os.path.join(rgb_filepath,rgb_filename),rgb_frame)
-            # self.get_logger().info(f'Saved RGB at {rgb_filepath}')
+            self.get_logger().info(f'Saved RGB at {rgb_filepath}')
         if depth_frame is not None:       
             depth_filename = "depth_"+curr_datetime+".jpg"
             depth_filepath=PATH+"/depth"
             cv2.imwrite(os.path.join(depth_filepath,depth_filename),depth_frame)
-            # self.get_logger().info(f'Saved Depth at {depth_filepath}')
+            self.get_logger().info(f'Saved Depth at {depth_filepath}')
         if cv2.waitKey(1)==ord('q'):
             raise SystemExit
 
