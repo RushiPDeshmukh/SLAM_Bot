@@ -36,8 +36,8 @@ class keyboard_teleop(Node):
 
         if(not self.reset):
             cmd_vel = Twist()
-            cmd_vel.linear.x = x
-            cmd_vel.linear.y = y
+            cmd_vel.linear.x = y
+            cmd_vel.linear.y = x
             cmd_vel.angular.z = rot_z
             self.twist_publisher.publish(cmd_vel)
             
