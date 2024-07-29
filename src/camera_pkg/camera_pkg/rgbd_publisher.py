@@ -15,14 +15,14 @@ class RGBDPublisher(Node):
         self.timer = self.create_timer(1.0, self.publish_rgbd_image)
 
         # OAK D LITE  Depth calibration
-        img_width_px = 480 
-        horizontal_fov = 73 # deg
+        img_width_px = 400 
+        horizontal_fov = 80 # deg
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 15  # Hz
+        fps = 30  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution
-        monoResolution = dai.MonoCameraProperties.SensorResolution.THE_480_P
+        monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
 
         # Create pipeline
         self.pipeline = dai.Pipeline()
