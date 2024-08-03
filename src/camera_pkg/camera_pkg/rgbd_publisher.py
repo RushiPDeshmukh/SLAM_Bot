@@ -6,23 +6,27 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import depthai as dai
+from sensor_msgs.msg import Image,CameraInfo
 
 class RGBDPublisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
-        self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
-        self.bridge = CvBridge()
-        self.timer = self.create_timer(1.0, self.publish_rgbd_image)
+        # self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
+        self.rgb_pub = self.create_publisher(Image,'rgb_frame',1)
+        self.depth_pub = self.create_publisher(Image,'depth_frame',1)
 
-        # OAK D LITE  Depth calibration
+        self.bridge = CvBridge()
+        # self.timer = self.create_timer(1.0, self.publish_rgbd_image)
+
+        # OAK D PRO  Depth calibration
         img_width_px = 400 
         horizontal_fov = 80 # deg
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
         fps = 30  # Hz
-        # The disparity is computed at this resolution, then upscaled to RGB resolution
-        monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
+        # The disparity is computed at this resolution, then upscaled to RGB resolution. Oak D Pro mono camera run at 800P
+        monoResolution = dai.MonoCameraProperties.SensorResolution.THE_800_P
 
         # Create pipeline
         self.pipeline = dai.Pipeline()
@@ -67,18 +71,17 @@ class RGBDPublisher(Node):
         self.stereo.setDepthAlign(rgbCamSocket)        
 
         ## Filters
-        stereo_config= self.stereo.initialConfig.get()
-        stereo_config.postProcessing.speckleFilter.enable=True # Speckle Filter
-        stereo_config.postProcessing.speckleFilter.speckleRange=50
-        stereo_config.postProcessing.spatialFilter.enable=True # Spatial Filter
-        stereo_config.postProcessing.spatialFilter.holeFillingRadius=2
-        stereo_config.postProcessing.spatialFilter.numIterations=1
+        # stereo_config= self.stereo.initialConfig.get()
+        # stereo_config.postProcessing.speckleFilter.enable=True # Speckle Filter
+        # stereo_config.postProcessing.speckleFilter.speckleRange=50
+        # stereo_config.postProcessing.spatialFilter.enable=True # Spatial Filter
+        # stereo_config.postProcessing.spatialFilter.holeFillingRadius=2
+        # stereo_config.postProcessing.spatialFilter.numIterations=1
         # stereo_config.postProcessing.thresholdFilter.minRange =  # Threshold Filter
         # stereo_config.postProcessing.thresholdFilter.maxRange =  
-        self.stereo.initialConfig.set(stereo_config)
+        # self.stereo.initialConfig.set(stereo_config)
         # self.stereo.setExtendedDisparity(True)
         
-
         # Linking
         self.camRgb.video.link(self.rgbOut.input)
         self.left.out.link(self.stereo.left)
@@ -94,7 +97,8 @@ class RGBDPublisher(Node):
         # Connect to device and start pipeline
         with self.device:
             self.device.startPipeline(self.pipeline)
-
+            # Set IR projection
+            self.device.setIrLaserDotProjectorIntensity(0.5) # in %, from 0 to 1 
             frameRgb = None
             frameDisp = None
 
@@ -111,6 +115,7 @@ class RGBDPublisher(Node):
 
                 if latestPacket["rgb"] is not None:
                     frameRgb = latestPacket["rgb"].getCvFrame()
+                    frameGray = cv2.cvtColor(frameRgb, cv2.COLOR_BGR2GRAY)
                     
                 if latestPacket["disp"] is not None:
                     frameDisp = latestPacket["disp"].getFrame()
@@ -120,7 +125,7 @@ class RGBDPublisher(Node):
                     
                 if frameDisp is not None and frameRgb is not None:
                     frameDepth=self.dispToDepth(frameDisp)
-                    self.publish_rgbd_image(frameRgb,frameDepth)
+                    self.publish_rgbd_image(frameGray,frameDepth)
                     frameDisp = None
                     frameRgb = None
                 
@@ -130,33 +135,40 @@ class RGBDPublisher(Node):
             HFOV = 73 degrees 
             baseline = 7.5 cm
         """
-        depth_frame = ((self.focal_len_px*self.baseline)/disp_frame).astype(np.float32)
-        self.get_logger().info(f'{np.shape(disp_frame)},{np.shape(depth_frame)}, {depth_frame[0][1]}')
-        return depth_frame  
+        with np.errstate(divide='ignore', invalid='ignore'):
+            depth_frame = (100*(self.focal_len_px*self.baseline)/disp_frame).astype(np.uint8) # Converted from meters to cm and then into integers
+            # self.get_logger().info(f'{np.shape(disp_frame)},{np.shape(depth_frame)}, {depth_frame[0][1]}')
+            return depth_frame  
 
-    def publish_rgbd_image(self, rgb_image, depth_image):
+    def publish_rgbd_image(self, gray_image, depth_image):
         # Convert RGB image to ROS Image message
-        rgb_msg = self.bridge.cv2_to_imgmsg(rgb_image, encoding="bgr8")
+        rgb_msg = self.bridge.cv2_to_imgmsg(gray_image, encoding="mono8")
 
         # Convert depth image to ROS Image message
-        depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="32FC1") #8UC1 64FC1
+        depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="mono8") #8UC1 64FC1
 
         # Create a new RGBD image message
-        rgbd_msg = RGBD()
-        rgbd_msg.header.stamp = self.get_clock().now().to_msg()
-        rgbd_msg.rgb = rgb_msg
-        rgbd_msg.depth = depth_msg
+        # rgbd_msg = RGBD()
+        # rgbd_msg.header.stamp = self.get_clock().now().to_msg()
+        # rgbd_msg.rgb = rgb_msg
+        # rgbd_msg.depth = depth_msg
 
-        #rgb_camera info
-        rgbd_msg.rgb_camera_info.header.stamp = rgbd_msg.header.stamp
-        rgbd_msg.rgb_camera_info.header.frame_id = self.frame_id
-        
-        #depth_camera_info
-        rgbd_msg.depth_camera_info = rgbd_msg.rgb_camera_info
+        rgb_msg_ = Image()
+        rgb_msg_ = rgb_msg
+        depth_msg_ = Image()
+        depth_msg_ = depth_msg
+
+        # Camera infos
+        # rgbd_msg.rgb_camera_info.header.stamp = rgbd_msg.header.stamp
+        # rgbd_msg.rgb_camera_info.header.frame_id = self.frame_id
+        # rgbd_msg.depth_camera_info = rgbd_msg.rgb_camera_info
 
         # Publish the RGBD image message
-        self.publisher.publish(rgbd_msg)
-        self.get_logger().info("Published RGBD image")
+        # self.publisher.publish(rgbd_msg)
+        
+        self.rgb_pub.publish(rgb_msg_)
+        self.depth_pub.publish(depth_msg_)
+        self.get_logger().info("Published RGBD image ")
 
 def main(args=None):
     rclpy.init(args=args)
