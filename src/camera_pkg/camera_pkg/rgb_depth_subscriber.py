@@ -5,8 +5,8 @@ from sensor_msgs.msg import Image
 class RGBDepthSubscriber(Node):
     def __init__(self):
         super().__init__('rgb_depth_subscriber')
-        self.rgb_subscriber = self.create_subscription(Image,'rgb_frame',self.get_rgb_frame,10)
-        self.depth_subscriber = self.create_subscription(Image,'depth_frame',self.get_depth_frame,10)
+        self.rgb_subscriber = self.create_subscription(Image,'rgb_frame',self.get_rgb_frame,1)
+        self.depth_subscriber = self.create_subscription(Image,'depth_frame',self.get_depth_frame,1)
 
         self.prev_rgb_time = self.get_clock().now().nanoseconds
         self.prev_depth_time = self.get_clock().now().nanoseconds
