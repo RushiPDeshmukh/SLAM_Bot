@@ -16,11 +16,14 @@ class keyboard_teleop(Node):
 
     def tele_op_map(self,msg):
         joystick_values = msg.axes
-        x = -joystick_values[0]/2   #sideways
-        y = joystick_values[1]/2    #front/back
 
-        rot_z = joystick_values[3]/200
+        if abs(joystick_values[0]) == 1: #right/left
+            x = joystick_values[0]*0.0667 #m/s 
+        if abs(joystick_values[1]) == 1: #front/back
+            y = joystick_values[1]*0.0667 #m/s   
 
+        if abs(joystick_values[3]) == 1: #turn left/turn right
+            rot_z = joystick_values[1]*0.0667 #m/s        
 
         if msg.buttons[4]:
             self.reset = True
