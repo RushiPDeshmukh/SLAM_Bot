@@ -1,4 +1,19 @@
+// M5 Stack Encoder Motor Driver Module
 
+_____________________________
+Robot        | Motor Driver  |
+_____________|_______________|
+Rear Left    |     M0        |
+Rear Right   |     M1        |
+Front Right  |     M2        |
+Front Left   |     M3        |
+_____________________________
+
+
+
+
+
+// CYTRON MOTOR DRIVER
 
 Robot to Motor Driver
 _____________________________
