@@ -6,5 +6,8 @@
 ![image](https://github.com/user-attachments/assets/4b29ca17-d51a-4032-9da7-c8a6fb7c0c9f)
 
 
-### Resources
+For each wheel we have PWM value 30 ~ 0.0667 m/s
+
+
+### Resources  
 [1] https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://research.ijcaonline.org/volume113/number3/pxc3901586.pdf
