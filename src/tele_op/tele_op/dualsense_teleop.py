@@ -35,10 +35,10 @@ class keyboard_teleop(Node):
             x = 0.0667 #m/s   
             self.update = True
         if joystick_values[3] == 1: #turn left
-            rot_z = -0.0667 #m/s
+            rot_z = -3*0.0667 #m/s
             self.update = True     
         if joystick_values[3] == -1: #turn right
-            rot_z = 0.0667 #m/s
+            rot_z = 3*0.0667 #m/s
             self.update = True   
 
         if msg.buttons[4]:
@@ -51,7 +51,6 @@ class keyboard_teleop(Node):
 
         if msg.buttons[5]:
             self.reset = False
-            
 
         if(not self.reset and self.update):
             cmd_vel = Twist()
@@ -59,7 +58,7 @@ class keyboard_teleop(Node):
             cmd_vel.linear.y = x
             cmd_vel.angular.z = rot_z
             self.twist_publisher.publish(cmd_vel)
-            self.update = True
+            self.update = False
             
 
 def main():
