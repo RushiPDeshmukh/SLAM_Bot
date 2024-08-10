@@ -27,7 +27,7 @@ class controller(Node):
         self.L = 0.106 ##### Dist from robot body center to wheel center in x direction (along longer body side)
         self.W = 0.094 #####
         self.wheel_radius = 0.0485
-        self.wheel_dir_alignment = np.array([1,-1,-1,1]).reshape(4,1)
+        self.wheel_dir_alignment = np.array([1,-1,1,-1]).reshape(4,1)
         self.kinematic_model = np.array([[1, -1, -(self.L + self.W)],[1, 1, (self.L + self.W)],[1,1,-(self.L+self.W)],[1,-1,(self.L+self.W)]])
         self.car_controller = M5Module4EncoderMotorController()
         self.car_controller.setMode(0,0x00) #Normal Mode
@@ -65,16 +65,18 @@ class controller(Node):
             self.car_controller.setMotorSpeeds([0,0,0,0])
 
     def angularVelocities_to_PWM_convertor(self,wheel_angular_velocities):
+            print(wheel_angular_velocities)
             PWMs = 21.81500872600349*wheel_angular_velocities
-            print(PWMs)
             PWMs = PWMs.reshape(1,4)[0].astype(int).tolist()
+            fl,fr,rl,rr = PWMs[0],PWMs[1],PWMs[2],PWMs[3]
+            PWMs[0],PWMs[1],PWMs[2],PWMs[3] = rl,rr,fr,fl
             print(PWMs)
             return PWMs
     
     def odom_publisher_callback(self):
         odom_msg = Odometry()
         now_time_=self.get_clock().now()
-        self.get_logger().info(f'Clock : {now_time_} == {type(now_time_.nanoseconds)} == {type(now_time_.seconds_nanoseconds())}')
+        # self.get_logger().info(f'Clock : {now_time_} == {type(now_time_.nanoseconds)} == {type(now_time_.seconds_nanoseconds())}')
         try:
             current_encoder_value = self.car_controller.getEncoderValues()
             current_encoder_value[1] = 500000 - current_encoder_value[1]
@@ -141,16 +143,16 @@ class controller(Node):
         """
         t0 = +2.0 * (quat.w * quat.x + quat.y * quat.z)
         t1 = +1.0 - 2.0 * (quat.x * quat.x + quat.y * quat.y)
-        roll_x = np.atan2(t0, t1)
+        roll_x = np.arctan2(t0, t1)
 
         t2 = +2.0 * (quat.w * quat.y - quat.z * quat.x)
         t2 = +1.0 if t2 > +1.0 else t2
         t2 = -1.0 if t2 < -1.0 else t2
-        pitch_y = np.asin(t2)
+        pitch_y = np.arcsin(t2)
 
         t3 = +2.0 * (quat.w * quat.z + quat.x * quat.y)
         t4 = +1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z)
-        yaw_z = np.atan2(t3, t4)
+        yaw_z = np.arctan2(t3, t4)
 
         return roll_x, pitch_y, yaw_z  # in radians
 
