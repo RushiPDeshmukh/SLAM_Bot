@@ -7,7 +7,7 @@ import cv2
 class RGBDepthSubscriber(Node):
     def __init__(self):
         super().__init__('rgb_depth_subscriber')
-        self.rgb_subscriber = self.create_subscription(Image,'rgb_frame',self.get_rgb_frame,10)
+        self.rgb_subscriber = self.create_subscription(Image,'gray_frame',self.get_rgb_frame,10)
         self.depth_subscriber = self.create_subscription(Image,'depth_frame',self.get_depth_frame,10)
         self.beidge=CvBridge()
         self.prev_rgb_time = self.get_clock().now().nanoseconds
@@ -18,7 +18,8 @@ class RGBDepthSubscriber(Node):
         self.get_logger().info(f'RGB message freq {((this_rgb_time-self.prev_rgb_time)*1e-9)}')
         self.prev_rgb_time = this_rgb_time
         try:
-            rgb_frame = self.bridge.imgmsg_tocv2(rgb_msg,'bgr8')
+            # rgb_frame = self.bridge.imgmsg_tocv2(rgb_msg,'bgr8')
+            rgb_frame = self.bridge.imgmsg_tocv2(rgb_msg,'mono8')
         except CvBridgeError as e1:
             self.get_logger().error("RGB frame CV Bridge failed: "+str(e1))
         if rgb_frame is not None:
