@@ -10,5 +10,10 @@ def generate_launch_description():
             executable='joy_node',
             name='joy_node',
             parameters=[{'dev':'/dev/input/js0'}]
-        )
+        ),
+        Node(
+            package='tele_op',
+            executable='dualsense_teleoperation',
+            name="my_dualsense_teleop"
+        )  
     ])

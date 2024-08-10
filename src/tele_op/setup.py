@@ -24,7 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'teleop = tele_op.keyboard_teleop:main',
-            'dualsense_teleop = tele_op.dualsense_teleop:main',
+            'dualsense_teleoperation = tele_op.dualsense_teleop:main',
         ],
     },
 )
