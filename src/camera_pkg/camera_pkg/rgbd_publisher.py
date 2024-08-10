@@ -12,9 +12,10 @@ class RGBDPublisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
         # self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
-        self.rgb_pub = self.create_publisher(Image,'rgb_frame',1)
+        self.rgb_pub = self.create_publisher(Image,'gray_frame',1)
         self.depth_pub = self.create_publisher(Image,'depth_frame',1)
-
+        self.timestamp_rgb=None
+        self.timestamp_depth=None
         self.bridge = CvBridge()
         # self.timer = self.create_timer(1.0, self.publish_rgbd_image)
 
@@ -24,7 +25,7 @@ class RGBDPublisher(Node):
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 30  # Hz
+        fps = 10  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution. Oak D Pro mono camera run at 800P
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_800_P
 
@@ -115,10 +116,13 @@ class RGBDPublisher(Node):
 
                 if latestPacket["rgb"] is not None:
                     frameRgb = latestPacket["rgb"].getCvFrame()
+                    self.timestamp_rgb = latestPacket["rgb"].getTimestampDevice()
                     frameGray = cv2.cvtColor(frameRgb, cv2.COLOR_BGR2GRAY)
                     
                 if latestPacket["disp"] is not None:
                     frameDisp = latestPacket["disp"].getFrame()
+                    self.timestamp_depth = latestPacket["disp"].getTimestampDevice()
+                    
                     maxDisparity = self.stereo.initialConfig.getMaxDisparity()
                     # Optional, extend range 0..95 -> 0..255, for a better visualisation
                     # if 1: frameDisp = (frameDisp * 255. / maxDisparity).astype(np.uint8)
@@ -141,12 +145,17 @@ class RGBDPublisher(Node):
             return depth_frame  
 
     def publish_rgbd_image(self, gray_image, depth_image):
+        timestamp = self.get_clock().now().to_msg()
+        
         # Convert RGB image to ROS Image message
         rgb_msg = self.bridge.cv2_to_imgmsg(gray_image, encoding="mono8")
+        rgb_msg.header.stamp = timestamp
 
         # Convert depth image to ROS Image message
         depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="mono8") #8UC1 64FC1
-
+        depth_msg.header.stamp = timestamp
+        self.get_logger().info(f'Timestamp: rgb    {self.timestamp_rgb},  {timestamp} ')
+        self.get_logger().info(f'Timestamp: depth  {self.timestamp_depth},  {timestamp} ')
         # Create a new RGBD image message
         # rgbd_msg = RGBD()
         # rgbd_msg.header.stamp = self.get_clock().now().to_msg()
@@ -157,7 +166,7 @@ class RGBDPublisher(Node):
         rgb_msg_ = rgb_msg
         depth_msg_ = Image()
         depth_msg_ = depth_msg
-
+        self.get_logger().info(f'Timestamp {rgb_msg.header.stamp}')
         # Camera infos
         # rgbd_msg.rgb_camera_info.header.stamp = rgbd_msg.header.stamp
         # rgbd_msg.rgb_camera_info.header.frame_id = self.frame_id
