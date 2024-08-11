@@ -56,6 +56,7 @@ class RGBDPublisher(Node):
         try:
             calibData = self.device.readCalibration2()
             lensPosition = calibData.getLensPosition(rgbCamSocket)
+            print("RGB - K: ",calibData.getCameraIntrinsics(rgbCamSocket))
             if lensPosition:
                 self.camRgb.initialControl.setManualFocus(lensPosition)
         except:
