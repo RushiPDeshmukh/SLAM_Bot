@@ -23,7 +23,8 @@ setup(
             "rgbd_pub=camera_pkg.rgbd_publisher:main",
             "rgbd_sub=camera_pkg.rgbd_subscriber:main",
             "save_frames=camera_pkg.frame_saver:main",
-            "hz_test=camera_pkg.rgb_depth_subscriber:main"
+            "hz_test=camera_pkg.rgb_depth_subscriber:main",
+            "imu_img_depth_pub=camera_pkg.oak_pro_publisher:main"
         ],
     },
 )

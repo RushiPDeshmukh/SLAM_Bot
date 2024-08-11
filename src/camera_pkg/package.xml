@@ -14,6 +14,7 @@
   <depend>camera_msgs</depend>
   <depend>os</depend>
   <depend>datetime</depend>
+  <depend>image_transport</depend>
   
 
   <test_depend>ament_copyright</test_depend>
