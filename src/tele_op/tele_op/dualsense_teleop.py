@@ -29,16 +29,16 @@ class keyboard_teleop(Node):
             self.update = True  
 
         if joystick_values[0] == 1: #left
-            x = -0.0667 #m/s  
+            x = 0.0667 #m/s  
             self.update = True   
         if joystick_values[0] == -1: #right
-            x = 0.0667 #m/s   
+            x = -0.0667 #m/s   
             self.update = True
         if joystick_values[3] == 1: #turn left
-            rot_z = -3*0.0667 #m/s
+            rot_z = 3*0.0667 #m/s
             self.update = True     
         if joystick_values[3] == -1: #turn right
-            rot_z = 3*0.0667 #m/s
+            rot_z = -3*0.0667 #m/s
             self.update = True   
 
         if msg.buttons[4]:
