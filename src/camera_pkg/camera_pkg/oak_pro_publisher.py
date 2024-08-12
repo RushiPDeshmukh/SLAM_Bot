@@ -12,8 +12,8 @@ class OAK_Pro_Publisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
         # self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
-        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',1)
-        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',1)
+        self.image_pub = self.create_publisher(Image,'oak_pro/left',1)
+        self.depth_pub = self.create_publisher(Image,'oak_pro/depth',1)
         self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',1)
         self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',1)
 

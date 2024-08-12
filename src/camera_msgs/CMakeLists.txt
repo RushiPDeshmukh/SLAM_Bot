@@ -10,6 +10,18 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(OpenCV REQUIRED)
+
+add_executable(compressed_pub src/compressed_pub.cpp)
+ament_target_dependencies(compressed_pub rclcpp sensor_msgs image_transport OpenCV)
+
+install(TARGETS
+  compressed_pub
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RGBD.msg"
