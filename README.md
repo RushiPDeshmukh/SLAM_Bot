@@ -16,3 +16,4 @@ TODO:
 
 References:  
 [1] Wang, S. L. "Motion Control and the Skidding of Mecanum-Wheel Vehicles." IJISET-International J. Innov. Sci. Eng. Technol 5.5 (2018): 75-82.
+[2] https://github.com/lucasw/carbot/blob/master/carbot_control/scripts/cmd_vel_to_joint.py#L32
