@@ -1,8 +1,9 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist,Quaternion
+from geometry_msgs.msg import Twist,Quaternion, TransformStamped
+from sensor_msgs.msg import JointState
 from nav_msgs.msg import Odometry
-
+from tf2_ros import TransformBroadcaster
 import numpy as np
 import sys
 import os
@@ -22,7 +23,8 @@ class controller(Node):
         self.__subcriber = self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,1)
         self.__odom_publisher = self.create_publisher(Odometry,'/wheel_odom',10)
         self.__odom_timer = self.create_timer(0.02,self.odom_publisher_callback)
-
+        self.__odom_tf_broadcaster = TransformBroadcaster(self)
+        self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
         #Car Parameters
         self.L = 0.106 ##### Dist from robot body center to wheel center in x direction (along longer body side)
         self.W = 0.094 #####
@@ -40,9 +42,17 @@ class controller(Node):
 
         self.motor_ppr = 2880
 
-        self.car_controller.setEncoderValues([0,500000,500000,0])
+        self.car_controller.setEncoderValues([0,500000,500000,0]) # RL , RR , FR, FL
 
-
+        self.joint_state = JointState()
+        self.joint_state.name.append('drivewhl_fl_joint')
+        self.joint_state.name.append('drivewhl_fr_joint')
+        self.joint_state.name.append('drivewhl_rl_joint')
+        self.joint_state.name.append('drivewhl_rr_joint')
+        self.joint_state.position.append(0.0)
+        self.joint_state.position.append(0.0)
+        self.joint_state.position.append(0.0)
+        self.joint_state.position.append(0.0)
 
     def cmd_vel_callback(self,msg):
         try:
@@ -78,7 +88,7 @@ class controller(Node):
         now_time_=self.get_clock().now()
         # self.get_logger().info(f'Clock : {now_time_} == {type(now_time_.nanoseconds)} == {type(now_time_.seconds_nanoseconds())}')
         try:
-            current_encoder_value = self.car_controller.getEncoderValues()
+            current_encoder_value = self.car_controller.getEncoderValues() # RL , RR , FR, FL
             current_encoder_value[1] = 500000 - current_encoder_value[1]
             current_encoder_value[2] = 500000 - current_encoder_value[2]
         except Exception as e:
@@ -87,7 +97,7 @@ class controller(Node):
         if self.prev_odom is None:
             self.prev_encoder_values = [0,0,0,0]
             self.prev_odom = Odometry()
-            self.prev_odom.header.frame_id='base_footprint'
+            self.prev_odom.header.frame_id='odom'
             self.prev_odom.header.stamp = self.get_clock().now().to_msg()
             self.prev_odom.pose.pose.position.x=0.
             self.prev_odom.pose.pose.position.y=0.
@@ -96,10 +106,10 @@ class controller(Node):
             self.prev_odom.twist.twist.linear.y=0. #v_y
             self.prev_odom.twist.twist.angular.z=0. #w_z
 
-        (pos_x,pos_y,yaw,v_x,v_y,w_z)=self.calculate_odom(now_time_.nanoseconds,current_encoder_value,self.prev_encoder_values,self.prev_odom)
+        (pos_x,pos_y,yaw,v_x,v_y,w_z,wheel_w,delta_t)=self.calculate_odom(now_time_.nanoseconds,current_encoder_value,self.prev_encoder_values,self.prev_odom)
         
         odom_msg = Odometry()
-        odom_msg.header.frame_id='base_footprint'
+        odom_msg.header.frame_id='odom'
         odom_msg.header.stamp=now_time_.to_msg()
         odom_msg.pose.pose.position.x = pos_x
         odom_msg.pose.pose.position.y = pos_y
@@ -108,6 +118,27 @@ class controller(Node):
         odom_msg.twist.twist.linear.y = v_y
         odom_msg.twist.twist.angular.z = w_z
         self.__odom_publisher.publish(odom_msg)
+        
+        # Publish joint states --> # RL , RR , FR, FL
+        self.joint_state.position[0] = wheel_w[3]*delta_t # front left
+        self.joint_state.position[1] = wheel_w[2]*delta_t # front right        
+        self.joint_state.position[2] = wheel_w[0]*delta_t # rear left
+        self.joint_state.position[3] = wheel_w[1]*delta_t # rear right       
+        self.__joint_state_publisher.publish(self.joint_state)
+        
+        # Publish tf for odom to base link
+        transform_ = TransformStamped()
+        transform_.header.stamp=self.get_clock().now().to_msg()
+        transform_.header.frame_id='odom'
+        transform_._child_frame_id='base_link'
+
+        transform_.transform.translation.x = pos_x
+        transform_.transform.translation.y = pos_y
+        transform_.transform.rotation=self.get_quaternion_from_euler(0,0,yaw)         
+        
+        self.__odom_tf_broadcaster.sendTransform(transform_)
+
+        # Update previous odom message
         self.prev_odom = odom_msg
         self.prev_encoder_values = current_encoder_value
         
@@ -124,7 +155,7 @@ class controller(Node):
         pose_y = prev_odom.pose.pose.position.y + lin_y*del_time
         new_yaw = self.get_euler_from_quaternion(prev_odom.pose.pose.orientation)[2] + ang_z*del_time
 
-        return pose_x,pose_y,new_yaw,lin_x,lin_y,ang_z
+        return pose_x,pose_y,new_yaw,lin_x,lin_y,ang_z,motor_angular_velocities,del_time
 
     def get_quaternion_from_euler(self,roll,pitch,yaw):
         quat = Quaternion()
