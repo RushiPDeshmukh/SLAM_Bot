@@ -44,9 +44,9 @@
 
   <!-- The base footprint of the robot is located underneath the chassis -->
   <joint name="base_joint" type="fixed">
-    <parent link="base_footprint"/>
-    <child link="base_link" />
-    <origin xyz="0.0 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="base_footprint" />
+    <origin xyz="0.0 0.0 -${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
   </joint>
 
   <!-- ********************** ROBOT BASE *********************************  -->
@@ -107,13 +107,12 @@
       <parent link="base_link"/>
       <child link="${prefix}_link"/>
       <origin xyz="${x_reflect*wheel_xoff} ${y_reflect*(base_width/2+wheel_ygap)} ${-wheel_zoff}" rpy="0 0 0"/>
-      <!-- <limit upper="3.1415" lower="-3.1415" effort="30" velocity="5.0"/> -->
       <axis xyz="0 1 0"/>
     </joint>
   </xacro:macro>
 
   <!-- Instantiate two wheels using the macro we just made through the 
-       xacro:wheel tags. We also define the parameters to have one wheel
+       xacr wheel tags. We also define the parameters to have one wheel
        on both sides at the back of our robot (i.e. x_reflect=-1). -->
   <xacro:wheel prefix="drivewhl_fl" x_reflect="1" y_reflect="1" />
   <xacro:wheel prefix="drivewhl_fr" x_reflect="1" y_reflect="-1" />
@@ -159,7 +158,7 @@
   </link>
 
   <!-- Optical link / joint for converting from camera coordinate system to ROS coordinate system-->
-  <!-- TO-DO: Check Oak D Pro documentation and add left optical joint  -->
+  <!-- TO-DO Check Oak D Pro documentation and add left optical joint  -->
   <joint name="camera_optical_joint" type="fixed">
       <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
       <parent link="camera_link"/>
