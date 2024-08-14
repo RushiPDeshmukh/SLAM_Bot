@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist,Quaternion, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
-from nav_msgs.msg import Odometry, Path
+from nav_msgs.msg import Odometry, Path, Path
 from tf2_ros import TransformBroadcaster
 import numpy as np
 import sys
@@ -64,6 +64,7 @@ class controller(Node):
         self.joint_state.position.append(0.0)
         self.joint_state.position.append(0.0)
         self.joint_state.position.append(0.0)
+        
 
     def cmd_vel_callback(self,msg):
         try:
