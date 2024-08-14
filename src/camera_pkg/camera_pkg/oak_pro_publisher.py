@@ -7,18 +7,22 @@ import cv2
 import numpy as np
 import depthai as dai
 from sensor_msgs.msg import Image , Imu, MagneticField
+from rclpy.executors import MultiThreadedExecutor
 
 class OAK_Pro_Publisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
         # self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
-        self.image_pub = self.create_publisher(Image,'oak_pro/left',1)
-        self.depth_pub = self.create_publisher(Image,'oak_pro/depth',1)
+        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',1)
+        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',1)
         self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',1)
         self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',1)
 
         self.timestamp_rgb=None
         self.timestamp_depth=None
+        
+        #Save first depth frame
+        self.first_depth = True
 
         self.bridge = CvBridge()
         
@@ -28,7 +32,7 @@ class OAK_Pro_Publisher(Node):
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 30  # Hz
+        fps = 10  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution. Oak D Pro mono camera run at 800P
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
 
@@ -102,13 +106,15 @@ class OAK_Pro_Publisher(Node):
         self.left.out.link(self.imageOut.input)
         self.left.out.link(self.stereo.left)
         self.right.out.link(self.stereo.right)
-        self.stereo.depth.link(self.disparityOut.input)
+        self.stereo.disparity.link(self.disparityOut.input)
         self.IMU.out.link(self.ImuOut.input)
 
         #parameter
         self.frame_id = 'camera_frame'
 
         self.frameGrabber()
+
+        
 
     def frameGrabber(self):
         # Connect to device and start pipeline
@@ -158,7 +164,7 @@ class OAK_Pro_Publisher(Node):
         IMU_msg = Imu()
         Mag_msg = MagneticField()
         IMU_msg.header.stamp = self.get_clock().now().to_msg()
-        IMU_msg.header.frame_id="imu"
+        IMU_msg.header.frame_id="imu_link"
         IMU_msg.linear_acceleration.x = acc_values.x
         IMU_msg.linear_acceleration.y = acc_values.y
         IMU_msg.linear_acceleration.z = acc_values.z
@@ -166,7 +172,7 @@ class OAK_Pro_Publisher(Node):
         IMU_msg.angular_velocity.y = gyro_values.y
         IMU_msg.angular_velocity.z = gyro_values.z
         Mag_msg.header.stamp = self.get_clock().now().to_msg()
-        Mag_msg.header.frame_id="imu"
+        Mag_msg.header.frame_id="imu_link"
         Mag_msg.magnetic_field.x = mag_value.x
         Mag_msg.magnetic_field.y = mag_value.y
         Mag_msg.magnetic_field.z = mag_value.z
@@ -178,29 +184,49 @@ class OAK_Pro_Publisher(Node):
     def publish_rgbd_image(self, gray_image, depth_image):
         timestamp = self.get_clock().now().to_msg()
         
-        # Convert RGB image to ROS Image message
-        image_msg = self.bridge.cv2_to_imgmsg(gray_image, encoding="mono8")
-        image_msg.header.stamp = timestamp
+        # Encode image with JPEG compression
+        _, image_buffer = cv2.imencode('.jpeg', gray_image)
+        
+
+        # Create and publish compressed image message
+        compressed_left_msg = Image()
+        compressed_left_msg.header.stamp = timestamp
+        compressed_left_msg.encoding = 'jpeg'
+        compressed_left_msg.data = image_buffer.tobytes()
 
         # Convert depth image to ROS Image message
-        depth_msg = self.bridge.cv2_to_imgmsg(depth_image, encoding="16UC1") #8UC1 64FC1
-        depth_msg.header.stamp = timestamp
-        self.get_logger().info(f'Timestamp: rgb    {self.timestamp_rgb},  {timestamp} ')
-        self.get_logger().info(f'Timestamp: depth  {self.timestamp_depth},  {timestamp} ')
+        # Encode image with JPEG compression
+        _, buffer = cv2.imencode('.png', depth_image)
         
-        self.image_pub.publish(image_msg)
-        self.depth_pub.publish(depth_msg)
-        self.get_logger().info("Published RGBD image ")
+
+        # Create and publish compressed image message
+        compressed_msg = Image()
+        compressed_msg.header.stamp = timestamp
+        compressed_msg.encoding = 'png'
+        compressed_msg.data = buffer.tobytes()
+        # self.get_logger().info(f'Timestamp: rgb    {self.timestamp_rgb},  {timestamp} ')
+        # self.get_logger().info(f'Timestamp: depth  {self.timestamp_depth},  {timestamp} ')
+        
+        self.image_pub.publish(compressed_left_msg)
+        self.depth_pub.publish(compressed_msg)
+        # self.get_logger().info("Published RGBD image ")
 
 def main(args=None):
     rclpy.init(args=args)
     oak_pro_publisher = OAK_Pro_Publisher()
+
+    executor = MultiThreadedExecutor()
+    executor.add_node(oak_pro_publisher)
+
     try:
-        rclpy.spin(oak_pro_publisher)
+        executor.spin()
     except KeyboardInterrupt:
         rclpy.logging.get_logger("Quitting").info('Done')
-    oak_pro_publisher.destroy_node()
-    rclpy.shutdown()
+    finally:
+        executor.shutdown()
+        oak_pro_publisher.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
