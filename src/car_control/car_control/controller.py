@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist,Quaternion, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
-from nav_msgs.msg import Odometry, Path, Path
+from nav_msgs.msg import Odometry, Path
 from tf2_ros import TransformBroadcaster
 import numpy as np
 import sys
@@ -72,7 +72,7 @@ class controller(Node):
             y = msg.linear.y
             w = msg.angular.z
             cmd_vel = np.array([x,y,w]).reshape(3,1)
-            self.get_logger().info("Received Cmd_vel")
+            # self.get_logger().info("Received Cmd_vel")
             wheel_angular_velocities = (self.wheel_radius**-1*self.wheel_dir_alignment*self.kinematic_model@cmd_vel)
             
             PWMs = self.angularVelocities_to_PWM_convertor(wheel_angular_velocities)
@@ -87,12 +87,12 @@ class controller(Node):
             self.car_controller.setMotorSpeeds([0,0,0,0])
 
     def angularVelocities_to_PWM_convertor(self,wheel_angular_velocities):
-            print(wheel_angular_velocities)
+            # print(wheel_angular_velocities)
             PWMs = 21.81500872600349*wheel_angular_velocities
             PWMs = PWMs.reshape(1,4)[0].astype(int).tolist()
             fl,fr,rl,rr = PWMs[0],PWMs[1],PWMs[2],PWMs[3]
             PWMs[0],PWMs[1],PWMs[2],PWMs[3] = rl,rr,fr,fl
-            print(PWMs)
+            # print(PWM)
             return PWMs
     
     def odom_publisher_callback(self):
@@ -160,7 +160,7 @@ class controller(Node):
             this_pose.header.frame_id='odom'
             this_pose.header.stamp=self.get_clock().now().to_msg()
             this_pose.pose.position.x = odom_msg.pose.pose.position.x
-            this_pose.pose.position.x = odom_msg.pose.pose.position.x
+            this_pose.pose.position.y = odom_msg.pose.pose.position.y
             this_pose.pose.orientation = odom_msg.pose.pose.orientation
             self.odom_path.poses.append(this_pose)
             self.__odom_path_publisher.publish(self.odom_path)
@@ -176,11 +176,12 @@ class controller(Node):
     def calculate_odom(self,time_,this_enc_values,prev_enc_values,prev_odom):
         del_time = (time_-prev_odom.header.stamp.nanosec)*10e-9
         motor_angular_velocities = np.array([self.encoder_to_rad(this_enc_values[0]-prev_enc_values[0]),self.encoder_to_rad(this_enc_values[1]-prev_enc_values[1]),self.encoder_to_rad(this_enc_values[2]-prev_enc_values[2]),self.encoder_to_rad(this_enc_values[3]-prev_enc_values[3])])/del_time
-
+        
         lin_x = (self.wheel_radius/4)*(motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]+motor_angular_velocities[3])
         lin_y = (self.wheel_radius/4)*(-motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]-motor_angular_velocities[3])
         ang_z = (self.wheel_radius/(4*(self.L+self.W)))*(-motor_angular_velocities[0]+motor_angular_velocities[1]-motor_angular_velocities[2]+motor_angular_velocities[3])
-
+        if not(lin_x == 0.0 and lin_y == 0.0 and ang_z == 0.0):
+            self.get_logger().info(f'-- Vx = {lin_x:.2e} , Vy = {lin_y:.2e}, W = {ang_z:.2e}')
         prev_yaw = self.get_euler_from_quaternion(prev_odom.pose.pose.orientation)[2]
         pose_x = prev_odom.pose.pose.position.x + del_time*(lin_x*np.cos(prev_yaw)-lin_y*np.sin(prev_yaw))
         pose_y = prev_odom.pose.pose.position.y + del_time*(lin_x*np.sin(prev_yaw)+lin_y*np.cos(prev_yaw))
