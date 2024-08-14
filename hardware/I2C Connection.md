@@ -5,6 +5,9 @@ GND | outer edge 3rd from end  | outer edge 3 pins from near encoder 1
 SDA | inner edge 2nd from end  | outer edge 9th from Encoder 1 end  
 SCL | inner edge 3rd from end  | inner edge 9th from Encoder 1 end  
 
+### Note: I2C connection lost (SMBus Error)  
+check all connections (GND, SDA, SCL)
+
 # RPI 4B
 
 ![image](https://github.com/user-attachments/assets/5c1df5c5-c500-4fe0-971e-0577fcb36255)
