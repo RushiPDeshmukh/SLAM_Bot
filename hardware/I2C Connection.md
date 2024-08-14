@@ -1,9 +1,9 @@
 ## RPI and M5Stack Motor Encoder module
 
-Pin | Rpi  |   M5Stack
-GND | 
-SDA |
-SCL | 
+Pin | Rpi                      |   M5Stack  
+GND | outer edge 3rd from end  | outer edge 3 pins from near encoder 1  
+SDA | inner edge 2nd from end  | outer edge 9th from Encoder 1 end  
+SCL | inner edge 3rd from end  | inner edge 9th from Encoder 1 end  
 
 # RPI 4B
 
