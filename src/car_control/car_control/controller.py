@@ -158,7 +158,9 @@ class controller(Node):
             this_pose = PoseStamped()
             this_pose.header.frame_id='odom'
             this_pose.header.stamp=self.get_clock().now().to_msg()
-            this_pose.pose = odom_msg.pose
+            this_pose.pose.position.x = odom_msg.pose.pose.position.x
+            this_pose.pose.position.x = odom_msg.pose.pose.position.x
+            this_pose.pose.orientation = odom_msg.pose.pose.orientation
             self.odom_path.poses.append(this_pose)
             self.__odom_path_publisher.publish(self.odom_path)
 
