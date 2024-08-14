@@ -1,8 +1,8 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist,Quaternion, TransformStamped
+from geometry_msgs.msg import Twist,Quaternion, TransformStamped, PoseStamped
 from sensor_msgs.msg import JointState
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
 from tf2_ros import TransformBroadcaster
 import numpy as np
 import sys
@@ -24,7 +24,16 @@ class controller(Node):
         self.__odom_publisher = self.create_publisher(Odometry,'/wheel_odom',10)
         self.__odom_timer = self.create_timer(0.02,self.odom_publisher_callback)
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
-        self.__joint_state_publisher = self.create_publisher(JointState,'joint_states',10)
+        self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
+        
+        self.visualize_path=True
+        if self.visualize_path:        
+            self.__odom_path_publisher = self.create_publisher(Path,'odom_path',10)
+            self.odom_path = Path()
+            self.odom_path.header.frame_id='odom'
+            self.odom_path.header.stamp=self.get_clock().now().to_msg()
+            self.odom_path.poses=[] 
+
         #Car Parameters
         self.L = 0.106 ##### Dist from robot body center to wheel center in x direction (along longer body side)
         self.W = 0.094 #####
@@ -143,6 +152,15 @@ class controller(Node):
         transform_.transform.rotation=self.get_quaternion_from_euler(0,0,yaw)         
         
         self.__odom_tf_broadcaster.sendTransform(transform_)
+
+        # Visualize Path in rviz
+        if self.visualize_path:
+            this_pose = PoseStamped()
+            this_pose.header.frame_id='odom'
+            this_pose.header.stamp=self.get_clock().now().to_msg()
+            this_pose.pose = odom_msg.pose
+            self.odom_path.poses.append(this_pose)
+            self.__odom_path_publisher.publish(self.odom_path)
 
         # Update previous odom message
         self.prev_odom = odom_msg
