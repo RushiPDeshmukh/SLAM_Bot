@@ -27,7 +27,7 @@ class OAK_Pro_Publisher(Node):
         self.bridge = CvBridge()
         
         # OAK D PRO  Depth calibration
-        img_width_px = 400 
+        img_width_px = 640 
         horizontal_fov = 80 # deg
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
@@ -144,6 +144,7 @@ class OAK_Pro_Publisher(Node):
                 if latestPacket["depth"] is not None:
                     frameDepth = latestPacket["depth"].getFrame()
                     self.timestamp_depth = latestPacket["depth"].getTimestampDevice()
+                    # self.get_logger().info(f'Depth: {type(frameDepth)}, Unique {len(np.unique(frameDepth))}')
                     
                 if latestPacket["imu"] is not None:
                     imu_packet = latestPacket["imu"]
