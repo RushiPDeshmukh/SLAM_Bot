@@ -15,10 +15,17 @@ class FrameSaver(Node):
     def __init__(self):
         super().__init__('frame_saver')
         # self.rgbd_subscriber = self.create_subscription(RGBD,'rgbd_frame',self.get_frame,10)
-        self.gray_subscriber = self.create_subscription(Image,'oak_pro/left',self.get_gray_frame,1)
+        self.gray_subscriber = self.create_subscription(Image,'oak_pro/left_compressed',self.get_gray_frame,1)
         self.depth_subscriber = self.create_subscription(Image,'oak_pro/depth_compressed',self.get_depth_frame,1)
         self.bridge=CvBridge()
         self.depth_frame_copy=None
+
+        """ Oak D Pro config """
+        image_width = 640 # 400P setting for mono camera & stereo is scaled to mono
+        horizontal_fov = 80 # deg
+        self.baseline = 0.075 # m
+        self.focal_length_px = (image_width)/(2*np.tan(np.deg2rad(horizontal_fov)/2))
+        
         # try:
         #     os.mkdir(CWD_PATH+"/images")
         #     os.mkdir(PATH+"/rgb")
@@ -50,12 +57,18 @@ class FrameSaver(Node):
             compressed_data = np.frombuffer(depth_msg.data, dtype=np.uint8)
             # Decode the PNG data to a NumPy array
             depth_frame = cv2.imdecode(compressed_data, cv2.IMREAD_UNCHANGED)
+            # self.get_logger().info(f'Type = {type(depth_frame)}, Unique values {len(np.unique(depth_frame))}')
+            real_depth_frame = self.disparity_to_depth(depth_frame)
+            self.get_logger().info(f'Depth = {np.shape(real_depth_frame)}, Unique values {np.unique(real_depth_frame,return_counts=True)}')
         except CvBridgeError as e2:
             self.get_logger().error("Depth frame CV Bridge failed: "+str(e2))
+        except Exception as e:
+            self.get_logger().error("Depth frame conversion failed: "+str(e))
         if depth_frame is not None:
             depth_filename = "depth_"+str(curr_epoch_time)+".png"
             depth_filepath=PATH+"/depth"
             cv2.imwrite(os.path.join(depth_filepath,depth_filename),depth_frame)
+            cv2.imshow('depth',depth_frame)
             self.get_logger().info(f'Saved Depth at {depth_filepath}')
         if cv2.waitKey(1)==ord('q'):
             raise SystemExit
@@ -86,6 +99,20 @@ class FrameSaver(Node):
         if cv2.waitKey(1)==ord('q'):
             raise SystemExit
 
+    def disparity_to_depth(self,disparity_frame):
+        """ OAK D Pro Stereo pair 
+            HFOV = 80 degrees 
+            baseline = 0.075 m
+
+            depth_m = fx_px * (baseline_m / disparity_px)
+        """
+        depth_frame = np.where(
+            disparity_frame != 0,
+            (self.focal_length_px * self.baseline) / disparity_frame,
+            0
+            )
+        
+        return depth_frame 
 
 def main(args=None):
     rclpy.init(args=args)
