@@ -24,15 +24,15 @@ def get_data(folder_path):
     dataset_handler = {}
 
     #loading images
-    dataset_handler['images_rgb'] = []
+    dataset_handler['images_gray'] = []
     dataset_handler['images'] = []
-    for filename in tqdm(sorted(os.listdir(folder_path+'/rgb'))):
-        img = cv2.imread(os.path.join(folder_path+'/rgb',filename))
+    for filename in tqdm(sorted(os.listdir(folder_path+'/gray'))):
+        img = cv2.imread(os.path.join(folder_path+'/gray',filename))
         
         if img is not None:
             img = cv2.rotate(img,cv2.ROTATE_180)
             img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            dataset_handler['images_rgb'].append(img)
+            dataset_handler['images_gray'].append(img)
             dataset_handler['images'].append(img_gray)
     #loading depth_maps
     dataset_handler['depth_maps'] = []
@@ -45,7 +45,7 @@ def get_data(folder_path):
     
 
     #k parameter
-    dataset_handler['k'] = [[2994.451171875, 0.0, 2016.2567138671875], [0.0, 2994.451171875, 1080.2032470703125], [0.0, 0.0, 1.0]]
+    dataset_handler['k'] = [[3107.295654296875, 0.0, 1942.1912841796875], [0.0, 3105.113525390625, 1056.89697265625], [0.0, 0.0, 1.0]]
     return dataset_handler
 
 
@@ -345,7 +345,7 @@ def estimate_trajectory(estimate_motion, matches, kp_list, k, depth_maps=[]):
 
 #         # Save camera movement visualization
 #         if save:
-#             image = visualize_camera_movement(dataset_handler.images_rgb[i], image1_points, dataset_handler.images_rgb[i + 1], image2_points)
+#             image = visualize_camera_movement(dataset_handler.images_gray[i], image1_points, dataset_handler.images_gray[i + 1], image2_points)
 #             plt.imsave('{}/frame_{:02d}.jpg'.format(save, i), image)
 
         # Determine current pose from rotation and translation matrices
@@ -381,7 +381,7 @@ if __name__ == "__main__":
     # cv2.namedWindow("grayscale",cv2.WINDOW_NORMAL)
     # cv2.imshow("grayscale",image)
 
-    image_rgb = dataset_handler["images_rgb"][0]
+    image_rgb = dataset_handler["images_gray"][0]
     # cv2.namedWindow("rgb",cv2.WINDOW_NORMAL)
     # cv2.imshow("rgb",image_rgb)
 

@@ -7,7 +7,12 @@ Panels:
         - /Global Options1
         - /TF1/Frames1
       Splitter Ratio: 0.5647059082984924
-    Tree Height: 795
+    Tree Height: 572
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
   - Class: rviz_common/Views
     Expanded:
       - /Current View1
@@ -122,23 +127,13 @@ Visualization Manager:
           Value: true
         imu_link:
           Value: true
-        odom:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
-          base_link:
-            base_footprint:
-              {}
-            camera_link:
-              camera_optical_link:
-                {}
-            imu_link:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -176,38 +171,10 @@ Visualization Manager:
     Frame Rate: 30
   Name: root
   Tools:
+    - Class: rviz_default_plugins/FocusCamera
     - Class: rviz_default_plugins/Interact
       Hide Inactive Objects: true
-    - Class: rviz_default_plugins/Measure
-      Line color: 128; 128; 0
     - Class: rviz_default_plugins/MoveCamera
-    - Class: rviz_default_plugins/PublishPoint
-      Single click: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /clicked_point
-    - Class: rviz_default_plugins/Select
-    - Class: rviz_default_plugins/SetGoal
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: goal_pose
-    - Class: rviz_default_plugins/SetInitialPose
-      Covariance x: 0.25
-      Covariance y: 0.25
-      Covariance yaw: 0.06853891909122467
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: initialpose
-    - Class: rviz_default_plugins/FocusCamera
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
@@ -215,25 +182,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 29.99985122680664
+      Distance: 27.901180267333984
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.16797173023223877
-        Y: 2.2536001205444336
-        Z: -24.03548812866211
+        X: 6.1041107177734375
+        Y: 0.29615354537963867
+        Z: -23.038331985473633
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4897964000701904
+      Pitch: 1.2597966194152832
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.692372798919678
+      Yaw: 3.1623499393463135
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 100
@@ -281,9 +248,9 @@ Window Geometry:
   Height: 1016
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000200000000000001de0000039efc0200000005fb000000100044006900730070006c006100790073010000003d0000039e000000c900fffffffb0000000a00560069006500770073020000055e0000012a000001de000000a6fb0000000a0049006d00610067006501000002bf0000011c0000000000000000fb0000000a00440065007000740068010000030f000000cc0000000000000000fb0000000a0049006d0061006700650100000310000000cb00000000000000000000000100000100000003b9fc0200000001fb0000000a00560069006500770073000000003d000003b9000000a400ffffff000005560000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001de0000039efc0200000006fb000000100044006900730070006c006100790073010000003d000002bf000000c900fffffffb0000000a00560069006500770073020000055e0000012a000001de000000a6fb0000000a0049006d00610067006501000002bf0000011c0000000000000000fb0000000a00440065007000740068010000030f000000cc0000000000000000fb0000000a0049006d0061006700650100000310000000cb0000000000000000fb0000000a005600690065007700730100000302000000d9000000a400ffffff0000000100000100000003b9fc0200000001fb0000000a00560069006500770073000000003d000003b9000000a400ffffff000005560000039e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
-    collapsed: true
+    collapsed: false
   Width: 1850
   X: 70
   Y: 27

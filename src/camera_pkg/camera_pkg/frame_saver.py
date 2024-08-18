@@ -43,7 +43,7 @@ class FrameSaver(Node):
         except CvBridgeError as e1:
             self.get_logger().error("RGB frame CV Bridge failed: "+str(e1))
         if gray_frame is not None:
-            gray_filename = "gray"+ str(curr_epoch_time) + ".png"
+            gray_filename = "gray_"+ str(curr_epoch_time) + ".png"
             gray_filepath = PATH + "/gray"
             cv2.imwrite(os.path.join(gray_filepath,gray_filename),gray_frame)
             self.get_logger().info(f'Saved RGB at {gray_filepath}')
@@ -106,11 +106,13 @@ class FrameSaver(Node):
 
             depth_m = fx_px * (baseline_m / disparity_px)
         """
-        depth_frame = np.where(
-            disparity_frame != 0,
-            (self.focal_length_px * self.baseline) / disparity_frame,
-            0
-            )
+        depth_frame = np.divide(
+            self.focal_length_px * self.baseline,
+            disparity_frame.astype(float),
+            out=np.zeros_like(disparity_frame,dtype=float),
+            where=(disparity_frame != 0)
+        )
+
         
         return depth_frame 
 
