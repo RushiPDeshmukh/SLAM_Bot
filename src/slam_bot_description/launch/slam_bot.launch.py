@@ -33,12 +33,17 @@ def generate_launch_description():
     output='screen',
     arguments=['-d', rviz_config_file])    
 
-  
+  start_visual_odometry = Node(
+    package='odometry',
+    executable='visual_odom',
+    name='visual_odometry'
+  )
+
   # Create the launch description and populate
   ld = LaunchDescription()
 
   # Add any actions
   ld.add_action(start_robot_state_publisher_cmd)
   ld.add_action(start_rviz_cmd)
-
+  ld.add_action(start_visual_odometry)
   return ld

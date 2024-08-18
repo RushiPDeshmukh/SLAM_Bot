@@ -141,7 +141,15 @@ class VisualOdometryNode(Node):
     
     def extract_frame_features(self,image):
         kp,des = self.sift.detectAndCompute(image,None)        
-        return kp,des
+        filtered_kp = []
+        filtered_des = []
+        for i,this_kp in enumerate(kp):
+            if this_kp.pt[1]>=200:
+                filtered_kp.append(this_kp)
+                filtered_des.append(des[i])
+        filtered_des=np.array(filtered_des)
+
+        return filtered_kp,filtered_des
 
     def match_feature(self,des1,des2):
         des1 = np.float32(des1)
@@ -153,8 +161,14 @@ class VisualOdometryNode(Node):
         for m,n in match_1:
             if m.distance < 0.6*n.distance:
                 good_matches.append(m)
-
-        return good_matches
+        
+        filtered_matches=[]
+        dist_threshold = 100
+        for i,m_ in enumerate(good_matches):
+            if m_.distance < dist_threshold:
+                filtered_matches.append(m)
+        
+        return filtered_matches
     
     def estimate_motion(self,match, kp1, kp2, k, depth1=None):
         """
