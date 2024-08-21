@@ -25,6 +25,13 @@ def generate_launch_description():
     parameters=[{'robot_description': Command(['xacro ', model])}]
     )
   
+  start_car_controller = Node(
+    package='car_control',
+    executable='car_controller',
+    name='car_controller'
+  )
+
+
   # Launch RViz
   start_rviz_cmd = Node(
     package='rviz2',
@@ -44,6 +51,7 @@ def generate_launch_description():
 
   # Add any actions
   ld.add_action(start_robot_state_publisher_cmd)
-  # ld.add_action(start_rviz_cmd)
-  ld.add_action(start_visual_odometry)
+  ld.add_action(start_car_controller)
+  # # ld.add_action(start_rviz_cmd)
+  # ld.add_action(start_visual_odometry)
   return ld

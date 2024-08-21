@@ -65,7 +65,7 @@ class OAK_Pro_Publisher(Node):
         try:
             calibData = self.device.readCalibration2()
             lensPosition = calibData.getLensPosition(rgbCamSocket)
-            print("RGB - K: ",calibData.getCameraIntrinsics(rgbCamSocket))
+            print("LEFT - K: ",calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT))
             if lensPosition:
                 self.camRgb.initialControl.setManualFocus(lensPosition)
         except:
