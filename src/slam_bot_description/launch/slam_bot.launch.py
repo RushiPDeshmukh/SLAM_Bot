@@ -44,6 +44,6 @@ def generate_launch_description():
 
   # Add any actions
   ld.add_action(start_robot_state_publisher_cmd)
-  ld.add_action(start_rviz_cmd)
+  # ld.add_action(start_rviz_cmd)
   ld.add_action(start_visual_odometry)
   return ld

@@ -13,7 +13,7 @@ class VisualOdometryNode(Node):
     def __init__(self):
         super().__init__('visual_odom_node')
 
-        self.K = np.array([[3107.295654296875, 0.0, 1942.1912841796875], [0.0, 3105.113525390625, 1056.89697265625], [0.0, 0.0, 1.0]]) # Camera Calibration matrix 
+        self.K = np.array([[797.7258911132812, 0.0, 626.8783569335938], [0.0, 797.934814453125, 402.7000427246094], [0.0, 0.0, 1.0]]) # Camera Calibration matrix 
 
         # Subscribe to depth camera - RGB and depth frames
         self.rgb_subscriber = Subscriber(self,Image,'/oak_pro/left_compressed')
@@ -34,7 +34,17 @@ class VisualOdometryNode(Node):
         self.curr_idx=0
         self.frame_count=0
 
-        self.camera_optical_to_base_tf = [ [0.000,  0.000,  1.000,  0.148],  [-0.001,  1.000, -0.000,  0.000],  [-1.000, -0.001,  0.000,  0.000],  [0.000,  0.000,  0.000,  1.000]]
+        self.rot_total = np.eye(3)
+        self.trans_total = np.zeros((3,1))
+        self.translations_x = []
+        self.translations_y = []
+        self.translations_z = []
+        self.camera_optical_to_base_tf = [
+            [0.000,  0.001,  1.000, -0.000],
+            [-0.000, 1.000, -0.001,  0.000],
+            [-1.000, -0.000, 0.000,  0.148],
+            [0.000,  0.000,  0.000,  1.000]
+            ]
 
         """ Oak D Pro config """
         image_width = 640 # 400P setting for mono camera & stereo is scaled to mono
@@ -52,6 +62,9 @@ class VisualOdometryNode(Node):
 
         # Create SIFT and FLANN matcher
         self.sift = cv2.xfeatures2d.SIFT_create()
+        # Initialize ORB detector
+        
+        self.orb = cv2.ORB_create()
         FLANN_INDEX_KDTREE = 0
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
         search_params = dict(checks=50)   # or pass empty dictionary
@@ -80,7 +93,7 @@ class VisualOdometryNode(Node):
             try:
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
                 depth_frame = self.disparity_to_depth(disp_frame)
-
+                self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
                 self.get_logger().info(f'Depth frame CV Bridge failed : {e2}')
 
@@ -96,6 +109,8 @@ class VisualOdometryNode(Node):
             # if cv2.waitKey(1)==ord('q'):
             #     raise SystemExit
             
+            # img_frame = img_frame[200:,:]
+            # depth_frame = depth_frame[200:,:]
             self.curr_img_frame=img_frame
             self.curr_depth_frame=depth_frame
 
@@ -113,7 +128,11 @@ class VisualOdometryNode(Node):
                 self.visualize_matches(self.prev_img_frame,self.kp_array[self.curr_idx-1],self.curr_img_frame,self.kp_array[self.curr_idx],match)
                 #Estimate Motion
                 rmat, tvec, image1_points, image2_points = self.estimate_motion(match,self.kp_array[self.curr_idx-1],self.kp_array[self.curr_idx],self.K, self.prev_depth_frame)
+                # self.visualize_camera_movement(self.prev_img_frame,image1_points,self.curr_img_frame,image2_points,True)
                 
+                self.trans_total += self.rot_total.dot(tvec)
+                self.rot_total = rmat.dot(self.rot_total)
+                self.get_logger().info(f'Translation = x:{self.trans_total[0]}, y:{self.trans_total[1]}, z:{self.trans_total[2]} ')
                 # Update Trajectory
                 self.update_trajectory(rmat,tvec)
 
@@ -140,16 +159,9 @@ class VisualOdometryNode(Node):
     
     
     def extract_frame_features(self,image):
-        kp,des = self.sift.detectAndCompute(image,None)        
-        filtered_kp = []
-        filtered_des = []
-        for i,this_kp in enumerate(kp):
-            if this_kp.pt[1]>=200:
-                filtered_kp.append(this_kp)
-                filtered_des.append(des[i])
-        filtered_des=np.array(filtered_des)
-
-        return filtered_kp,filtered_des
+        kp,des = self.orb.detectAndCompute(image,None)        
+        
+        return kp,des
 
     def match_feature(self,des1,des2):
         des1 = np.float32(des1)
@@ -162,13 +174,7 @@ class VisualOdometryNode(Node):
             if m.distance < 0.6*n.distance:
                 good_matches.append(m)
         
-        filtered_matches=[]
-        dist_threshold = 100
-        for i,m_ in enumerate(good_matches):
-            if m_.distance < dist_threshold:
-                filtered_matches.append(m)
-        
-        return filtered_matches
+        return good_matches
     
     def estimate_motion(self,match, kp1, kp2, k, depth1=None):
         """
@@ -231,10 +237,38 @@ class VisualOdometryNode(Node):
         except:
             self.get_logger().warn(f'PNP failed due to less features ! ')
             rmat = np.eye(3)
-            tvec = np.zeros((1,4))
+            tvec = np.zeros((3, 1))
         
         return rmat, tvec, image1_points, image2_points
     
+    def visualize_camera_movement(self, image1, image1_points, image2, image2_points, is_show_img_after_move=False):
+        image1 = image1.copy()
+        image2 = image2.copy()
+        
+        for i in range(0, len(image1_points)):
+            # Coordinates of a point on t frame
+            p1 = (int(image1_points[i][0]), int(image1_points[i][1]))
+            # Coordinates of the same point on t+1 frame
+            p2 = (int(image2_points[i][0]), int(image2_points[i][1]))
+
+            cv2.circle(image1, p1, 5, (0, 255, 0), 1)
+            cv2.arrowedLine(image1, p1, p2, (0, 255, 0), 1)
+            cv2.circle(image1, p2, 5, (255, 0, 0), 1)
+
+            if is_show_img_after_move:
+                cv2.circle(image2, p2, 5, (255, 0, 0), 1)
+        
+        if is_show_img_after_move: 
+            cv2.imshow("movement-2",image2)
+            if cv2.waitKey(1)==ord('q'):
+                cv2.destroyAllWindows()
+                raise SystemExit
+        else:
+            cv2.imshow("movement-1",image1)
+            if cv2.waitKey(1)==ord('q'):
+                cv2.destroyAllWindows()
+                raise SystemExit
+            
     def update_trajectory(self,rmat,tvec):
         current_pose = np.eye(4)
         current_pose[0:3, 0:3] = rmat
@@ -256,10 +290,10 @@ class VisualOdometryNode(Node):
 
     def publish_path(self,position):
         now_time = self.get_clock().now().to_msg()
-        self.path_msg.header.frame_id='odom'
+        self.path_msg.header.frame_id='base_link'
         self.path_msg.header.stamp = now_time
         this_pose = PoseStamped()
-        this_pose.header.frame_id='odom'
+        this_pose.header.frame_id='base_link'
         this_pose.header.stamp=now_time
         this_pose.pose.position.x=position[0]
         this_pose.pose.position.y=position[1]
