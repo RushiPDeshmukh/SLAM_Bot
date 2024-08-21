@@ -1,3 +1,7 @@
+
+### OpenCV cannot find SIFT
+Install opencv-contrib-python
+
 ### ROS2 over WiFi
 
 In general, any active ros nodes must be accessible by any device on the same WiFi network.  
