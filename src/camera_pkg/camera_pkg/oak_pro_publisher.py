@@ -66,6 +66,7 @@ class OAK_Pro_Publisher(Node):
             calibData = self.device.readCalibration2()
             lensPosition = calibData.getLensPosition(rgbCamSocket)
             print("LEFT - K: ",calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT))
+            print("Distortion coeff : ",calibData.getDistortionCoefficients(dai.CameraBoardSocket.LEFT))
             if lensPosition:
                 self.camRgb.initialControl.setManualFocus(lensPosition)
         except:
