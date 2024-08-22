@@ -121,7 +121,7 @@ class OAK_Pro_Publisher(Node):
         with self.device:
             self.device.startPipeline(self.pipeline)
             # Set IR projection
-            self.device.setIrLaserDotProjectorBrightness(0.5) # in %, from 0 to 1 
+            self.device.setIrLaserDotProjectorBrightness(1) # in %, from 0 to 1 
             frameImage = None
             frameDepth = None
 
