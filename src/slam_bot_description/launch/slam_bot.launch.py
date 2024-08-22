@@ -31,6 +31,11 @@ def generate_launch_description():
     name='car_controller'
   )
 
+  start_camera_imu_publisher = Node(
+    package='camera_pkg',
+    executable='imu_img_depth_pub',
+    name='camera_imu_publisher'
+  )
 
   # Launch RViz
   start_rviz_cmd = Node(
@@ -50,8 +55,9 @@ def generate_launch_description():
   ld = LaunchDescription()
 
   # Add any actions
-  ld.add_action(start_robot_state_publisher_cmd)
+  # ld.add_action(start_robot_state_publisher_cmd)
   ld.add_action(start_car_controller)
+  ld.add_action(start_camera_imu_publisher)
   # # ld.add_action(start_rviz_cmd)
   # ld.add_action(start_visual_odometry)
   return ld
