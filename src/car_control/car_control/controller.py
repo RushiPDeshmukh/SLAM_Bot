@@ -65,6 +65,8 @@ class controller(Node):
         self.joint_state.position.append(0.0)
         self.joint_state.position.append(0.0)
         
+        self.wheel_vel_rolling_avg=[0.0,0.0,0.0,0.0] #[ FL , FR , RL , RR ]
+        
 
     def cmd_vel_callback(self,msg):
         try:
@@ -173,10 +175,13 @@ class controller(Node):
             self.prev_encoder_values = [0,0,0,0]
             print("Resetting encoder values!!!!")
         
-    def calculate_odom(self,time_,this_enc_values,prev_enc_values,prev_odom):
+    def calculate_odom(self,time_,this_enc_values,prev_enc_values,prev_odom): # 50 Hz
         del_time = (time_-prev_odom.header.stamp.nanosec)*10e-9
         motor_angular_velocities = np.array([self.encoder_to_rad(this_enc_values[0]-prev_enc_values[0]),self.encoder_to_rad(this_enc_values[1]-prev_enc_values[1]),self.encoder_to_rad(this_enc_values[2]-prev_enc_values[2]),self.encoder_to_rad(this_enc_values[3]-prev_enc_values[3])])/del_time
-        
+        is_too_fast = abs(motor_angular_velocities)>0.2 # 0.2 rad/sec == 0.485 m/s 
+        if len(np.where(is_too_fast)[0])>0:
+            self.get_logger().error(f'Wheel velocity exceeded: [ FL , FR , RL , RR ] =>{np.where(is_too_fast)[0]}')
+            motor_angular_velocities[np.where(is_too_fast)[0]]=0.02*np.sign(motor_angular_velocities[np.where(is_too_fast)])
         lin_x = (self.wheel_radius/4)*(motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]+motor_angular_velocities[3])
         lin_y = (self.wheel_radius/4)*(-motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]-motor_angular_velocities[3])
         ang_z = (self.wheel_radius/(4*(self.L+self.W)))*(-motor_angular_velocities[0]+motor_angular_velocities[1]-motor_angular_velocities[2]+motor_angular_velocities[3])
