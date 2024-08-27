@@ -134,7 +134,7 @@
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="camera_link"/>
-    <origin xyz="${base_length/2} 0 0" rpy="1.57 0 0"/>  
+    <origin xyz="${base_length/2} 0 0" rpy="0 0 0"/>  
   </joint>
 
   <link name="camera_link">
@@ -160,7 +160,7 @@
   <!-- Optical link / joint for converting from camera coordinate system to ROS coordinate system-->
   <!-- TO-DO Check Oak D Pro documentation and add left optical joint  -->
   <joint name="camera_optical_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${+pi/2}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <parent link="camera_link"/>
       <child link="camera_optical_link"/>
   </joint>

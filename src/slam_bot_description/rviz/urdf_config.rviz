@@ -171,36 +171,36 @@ Visualization Manager:
     Frame Rate: 30
   Name: root
   Tools:
-    - Class: rviz_default_plugins/FocusCamera
     - Class: rviz_default_plugins/Interact
       Hide Inactive Objects: true
     - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/FocusCamera
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 27.901180267333984
+      Class: rviz_default_plugins/XYOrbit
+      Distance: 3.82509446144104
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 6.1041107177734375
-        Y: 0.29615354537963867
-        Z: -23.038331985473633
+        X: -0.6266076564788818
+        Y: -0.0046559348702430725
+        Z: 0
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2597966194152832
+      Pitch: 0.8838692903518677
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz_default_plugins)
-      Yaw: 3.1623499393463135
+      Value: XYOrbit (rviz_default_plugins)
+      Yaw: 3.1262214183807373
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 100
