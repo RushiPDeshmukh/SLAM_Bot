@@ -1,13 +1,15 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image,CameraInfo
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
 from nav_msgs.msg import Path
 from message_filters import TimeSynchronizer,Subscriber
 import cv2
 from cv_bridge import CvBridge,CvBridgeError
 import numpy as np
 from matplotlib import pyplot as plt
+import tf2_ros
+from tf2_ros import Buffer,TransformListener
 
 class VisualOdometryNode(Node):
     def __init__(self):
@@ -23,6 +25,8 @@ class VisualOdometryNode(Node):
         # self.camera_info_subscriber = self.create_subscription(CameraInfo,'/depth_camera/camera_info',self.get_camera_info,10)
         self.path_publisher = self.create_publisher(Path,'/trajectory',10)
         self.bridge=CvBridge()
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer,self)
 
         self.curr_img_frame=None
         self.curr_depth_frame=None
@@ -60,12 +64,13 @@ class VisualOdometryNode(Node):
         
         self.trajectory = np.zeros((3, 1))
 
+        # Initialize ORB detector
+        self.orb = cv2.ORB_create()
+        
         # Create SIFT and FLANN matcher
         self.sift = cv2.xfeatures2d.SIFT_create()
-        # Initialize ORB detector
         
-        self.orb = cv2.ORB_create()
-        FLANN_INDEX_KDTREE = 0
+        FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
         search_params = dict(checks=50)   # or pass empty dictionary
         self.flann = cv2.FlannBasedMatcher(index_params,search_params)
@@ -74,7 +79,7 @@ class VisualOdometryNode(Node):
         self.path_msg = Path()
 
         # Visualization 
-        cv2.namedWindow("features",cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("features",cv2.WINDOW_NORMAL)
         cv2.namedWindow("matches",cv2.WINDOW_NORMAL)
 
     # def get_camera_info(self,info_msg):
@@ -84,14 +89,16 @@ class VisualOdometryNode(Node):
 
     def frame_callback(self,rgb_msg,depth_msg):
         if self.frame_count %1 == 0:
-
+            
             # Get grayscale and depth images
             try:
                 img_frame = cv2.imdecode(np.frombuffer(rgb_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+                img_frame = cv2.rotate(img_frame,cv2.ROTATE_180)
             except CvBridgeError as e1:
                 self.get_logger().info(f'RGB frame CV Bridge failed : {e1}')
             try:
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+                disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
                 depth_frame = self.disparity_to_depth(disp_frame)
                 self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
@@ -116,7 +123,7 @@ class VisualOdometryNode(Node):
 
             # Feature extraction
             kp,des = self.extract_frame_features(img_frame)
-            self.visualize_features(img_frame,kp)
+            # self.visualize_features(img_frame,kp)
             self.kp_array.append(kp)
             self.des_array.append(des)
 
@@ -132,9 +139,13 @@ class VisualOdometryNode(Node):
                 
                 self.trans_total += self.rot_total.dot(tvec)
                 self.rot_total = rmat.dot(self.rot_total)
+
                 self.get_logger().info(f'Translation = x:{self.trans_total[0]}, y:{self.trans_total[1]}, z:{self.trans_total[2]} ')
                 # Update Trajectory
-                self.update_trajectory(rmat,tvec)
+                # self.update_trajectory(rmat,tvec)
+                
+                
+                self.publish_path([float(i) for i in self.trans_total])
 
             self.curr_idx +=1
             self.prev_depth_frame=self.curr_depth_frame
@@ -159,7 +170,8 @@ class VisualOdometryNode(Node):
     
     
     def extract_frame_features(self,image):
-        kp,des = self.orb.detectAndCompute(image,None)        
+        #kp,des = self.orb.detectAndCompute(image,None)        
+        kp,des = self.sift.detectAndCompute(image,None)
         
         return kp,des
 
@@ -171,7 +183,7 @@ class VisualOdometryNode(Node):
         
         good_matches = []
         for m,n in match_1:
-            if m.distance < 0.6*n.distance:
+            if m.distance < 0.75*n.distance:
                 good_matches.append(m)
         
         return good_matches
@@ -276,7 +288,7 @@ class VisualOdometryNode(Node):
         
         # Build the robot's pose from the initial position by multiplying previous and current poses
         camera_pose = self.camera_pose[-1] @ np.linalg.inv(current_pose)
-        robot_pose = np.dot(self.camera_optical_to_base_tf,camera_pose)
+        robot_pose = self.camera_optical_to_base_tf@camera_pose
         # self.get_logger().info(f'Pose:{robot_pose}')
         self.camera_pose=np.append(self.camera_pose,camera_pose.reshape(1,4,4),axis=0)
         self.robot_pose=np.append(self.robot_pose,robot_pose.reshape(1,4,4),axis=0)
@@ -290,16 +302,30 @@ class VisualOdometryNode(Node):
 
     def publish_path(self,position):
         now_time = self.get_clock().now().to_msg()
-        self.path_msg.header.frame_id='base_link'
+        self.path_msg.header.frame_id='odom'
         self.path_msg.header.stamp = now_time
         this_pose = PoseStamped()
-        this_pose.header.frame_id='base_link'
+        this_pose.header.frame_id='odom'
         this_pose.header.stamp=now_time
-        this_pose.pose.position.x=position[0]
-        this_pose.pose.position.y=position[1]
-        this_pose.pose.position.z=position[2]
+        
+        this_pose.pose.position.x = position[2]
+        this_pose.pose.position.y = -position[0]
+        this_pose.pose.position.z = -position[1]
+        
+        # this_pose.pose.position.x = position[0]
+        # this_pose.pose.position.y = position[1]
+        # this_pose.pose.position.z = position[2]
+        
+        # try:
+        #     # Get the transform from 'camera_optical_frame' to 'odom'
+        #     transform = self.tf_buffer.lookup_transform('odom', 'camera_optical_link', rclpy.time.Time())
+        #     # Transform the pose to the 'odom' frame
+        #     transformed_point = self.tf_buffer.transform(this_pose, 'odom')
+        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+        #     self.get_logger().error(f'Error: {e}')
+                
+        #self.path_msg.poses.append(transformed_point)
         self.path_msg.poses.append(this_pose)
-
         self.path_publisher.publish(self.path_msg)
 
     def visualize_features(self,image,kp):

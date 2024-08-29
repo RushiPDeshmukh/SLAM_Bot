@@ -134,25 +134,25 @@
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="camera_link"/>
-    <origin xyz="${base_length/2} 0 0" rpy="1.57 0 0"/>  
+    <origin xyz="${base_length/2} 0 0" rpy="0 0 0"/>  
   </joint>
 
   <link name="camera_link">
     <collision>
      <origin xyz="0 0 0" rpy="0 0 0"/>
      <geometry>
-      <box size="0.0175 0.091 0.028"/>
+      <box size="0.028 0.097 0.0175"/>
      </geometry>
     </collision>
     
     <visual>
      <origin xyz="0 0 0" rpy="0 0 0"/>
      <geometry>
-      <box size="0.0175 0.091 0.028"/>
+      <box size="0.028 0.097 0.0175"/>
      </geometry>
       
-     <material name="Black">
-          <color rgba="${0/255} ${0/255} ${0/255} 1.0"/>
+     <material name="White">
+          <color rgba="${255/255} ${255/255} ${255/255} 1.0"/>
      </material>
     </visual>
   </link>

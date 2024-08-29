@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
+        - /Path1
       Splitter Ratio: 0.5647059082984924
     Tree Height: 572
   - Class: rviz_common/Views
@@ -127,13 +128,23 @@ Visualization Manager:
           Value: true
         imu_link:
           Value: true
+        odom:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        odom:
+          base_link:
+            base_footprint:
+              {}
+            camera_link:
+              camera_optical_link:
+                {}
+            imu_link:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -162,7 +173,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /odom_path
+        Value: /trajectory
       Value: true
   Enabled: true
   Global Options:
@@ -181,26 +192,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 27.901180267333984
+      Class: rviz_default_plugins/XYOrbit
+      Distance: 3.9769601821899414
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 6.1041107177734375
-        Y: 0.29615354537963867
-        Z: -23.038331985473633
+        X: -0.22869610786437988
+        Y: 0.43771713972091675
+        Z: -1.1920928955078125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2597966194152832
+      Pitch: 0.3985574543476105
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz_default_plugins)
-      Yaw: 3.1623499393463135
+      Value: XYOrbit (rviz_default_plugins)
+      Yaw: 1.8507930040359497
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 100
