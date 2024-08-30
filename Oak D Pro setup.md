@@ -1,6 +1,16 @@
 ## Oak D Pro
 #### Camera overview : https://docs.luxonis.com/hardware/products/OAK-D%20Pro
 
+Stereo Camera - OV9282   
+RGB Camera - Fixed Focus IMX378 (PY052)
+
+
+### Stereo Depth 
+[1] https://docs.luxonis.com/hardware/platform/depth/depth-accuracy#Depth%20Accuracy-Stereo%20Depth%20Accuracy-800P%2C%2075mm%20baseline%20distance%20OAKs
+  
+
+
+
 #### Settings used 
   FPS: 30 Hz
   RGB Image
