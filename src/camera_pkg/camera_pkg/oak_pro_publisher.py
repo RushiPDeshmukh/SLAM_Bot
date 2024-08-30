@@ -1,7 +1,6 @@
 import rclpy
 import rclpy.logging
 from rclpy.node import Node
-from camera_msgs.msg import RGBD
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -12,7 +11,6 @@ from rclpy.executors import MultiThreadedExecutor
 class OAK_Pro_Publisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
-        # self.publisher = self.create_publisher(RGBD, 'rgbd_frame', 10)
         self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',1)
         self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',1)
         self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',1)
@@ -26,13 +24,13 @@ class OAK_Pro_Publisher(Node):
 
         self.bridge = CvBridge()
         
-        # OAK D PRO  Depth calibration
+        # OAK D PRO  Depth calibration -- focal length and HFOV can be taken from device as it changes with resolution
         img_width_px = 640 
         horizontal_fov = 80 # deg
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 10  # Hz
+        fps = 20  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution. Oak D Pro mono camera run at 800P
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
 
@@ -41,9 +39,16 @@ class OAK_Pro_Publisher(Node):
         self.device = dai.Device()
 
         # Define sources and outputs
-        self.camRgb = self.pipeline.create(dai.node.Camera)
         self.left = self.pipeline.create(dai.node.MonoCamera)
         self.right = self.pipeline.create(dai.node.MonoCamera)
+        # Set manual exposure settings
+        exposure_time_us = 5000  # Example: 10000 microseconds (10ms)
+        sensitivity_iso = 800     # Example ISO value
+
+        self.left.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
+        self.right.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
+
+
         self.stereo = self.pipeline.create(dai.node.StereoDepth)
         self.IMU = self.pipeline.create(dai.node.IMU)
 
@@ -55,20 +60,11 @@ class OAK_Pro_Publisher(Node):
         self.ImuOut.setStreamName("imu")
         self.disparityOut.setStreamName("depth")
 
-        #Properties
-        rgbCamSocket = dai.CameraBoardSocket.CAM_A
-
-        self.camRgb.setBoardSocket(rgbCamSocket)
-        self.camRgb.setSize(1920, 1080) # 1080,720
-        self.camRgb.setFps(fps)
 
         try:
             calibData = self.device.readCalibration2()
-            lensPosition = calibData.getLensPosition(rgbCamSocket)
             print("LEFT - K: ",calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT))
             print("Distortion coeff : ",calibData.getDistortionCoefficients(dai.CameraBoardSocket.LEFT))
-            if lensPosition:
-                self.camRgb.initialControl.setManualFocus(lensPosition)
         except:
             raise
         self.left.setResolution(monoResolution)
@@ -89,6 +85,7 @@ class OAK_Pro_Publisher(Node):
         self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
         # LR-check is required for depth alignment
         self.stereo.setLeftRightCheck(True)
+        # self.stereo.setDepthAlign(dai.CameraBoardSocket.RGB)  # Align depth to RGB
 
 
         ## Filters
@@ -102,6 +99,7 @@ class OAK_Pro_Publisher(Node):
         # stereo_config.postProcessing.thresholdFilter.maxRange =  
         # self.stereo.initialConfig.set(stereo_config)
         # self.stereo.setExtendedDisparity(True)
+        self.stereo.setSubpixel(True)
         
         # Linking
         self.left.out.link(self.imageOut.input)
@@ -122,7 +120,7 @@ class OAK_Pro_Publisher(Node):
         with self.device:
             self.device.startPipeline(self.pipeline)
             # Set IR projection
-            self.device.setIrLaserDotProjectorBrightness(1) # in %, from 0 to 1 
+            self.device.setIrLaserDotProjectorBrightness(1.0) # in %, from 0 to 1 
             frameImage = None
             frameDepth = None
 
@@ -183,11 +181,11 @@ class OAK_Pro_Publisher(Node):
         self.mag_pub.publish(Mag_msg)
        
 
-    def publish_rgbd_image(self, gray_image, depth_image):
+    def publish_rgbd_image(self, rgb_image, depth_image):
         timestamp = self.get_clock().now().to_msg()
         
         # Encode image with JPEG compression
-        _, image_buffer = cv2.imencode('.jpeg', gray_image)
+        _, image_buffer = cv2.imencode('.jpeg', rgb_image)
         
 
         # Create and publish compressed image message
