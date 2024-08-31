@@ -26,7 +26,7 @@ class OAK_Pro_Publisher(Node):
         
         # OAK D PRO  Depth calibration -- focal length and HFOV can be taken from device as it changes with resolution
         img_width_px = 640 
-        horizontal_fov = 80 # deg
+        horizontal_fov = 43.715419733405426 # deg
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
@@ -63,8 +63,9 @@ class OAK_Pro_Publisher(Node):
 
         try:
             calibData = self.device.readCalibration2()
-            print("LEFT - K: ",calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT))
-            print("Distortion coeff : ",calibData.getDistortionCoefficients(dai.CameraBoardSocket.LEFT))
+            self.get_logger().info(f"LEFT - K: {calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT)}")
+            self.get_logger().info(f"Distortion coeff : {calibData.getDistortionCoefficients(dai.CameraBoardSocket.LEFT)}")
+
         except:
             raise
         self.left.setResolution(monoResolution)
@@ -99,7 +100,7 @@ class OAK_Pro_Publisher(Node):
         # stereo_config.postProcessing.thresholdFilter.maxRange =  
         # self.stereo.initialConfig.set(stereo_config)
         # self.stereo.setExtendedDisparity(True)
-        self.stereo.setSubpixel(True)
+        # self.stereo.setSubpixel(True)
         
         # Linking
         self.left.out.link(self.imageOut.input)

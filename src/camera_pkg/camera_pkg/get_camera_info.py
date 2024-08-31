@@ -49,31 +49,43 @@ with dai.Device() as device:
     cameras = device.getConnectedCameras()
     print(cameras)
     alpha = 1
+    
+    pipeline = dai.Pipeline()
+    monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
+    left = pipeline.create(dai.node.MonoCamera)
+    exposure_time_us = 5000  # Example: 10000 microseconds (10ms)
+    sensitivity_iso = 800     # Example ISO value
+    left.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
+    left.setResolution(monoResolution)
+    
+    # 400P
+    width = 640
+    height = 400 
+    
+    cam = dai.CameraBoardSocket.LEFT
+    M = calibData.getCameraIntrinsics(cam)
+    M = np.array(M)
+    d = np.array(calibData.getDistortionCoefficients(cam))
 
-    for cam in cameras:
-        M, width, height = calibData.getDefaultIntrinsics(cam)
-        M = np.array(M)
-        d = np.array(calibData.getDistortionCoefficients(cam))
+    hFov = getHFov(M, width)
+    vFov = getHFov(M, height)
+    dFov = getDFov(M, width, height)
 
-        hFov = getHFov(M, width)
-        vFov = getHFov(M, height)
-        dFov = getDFov(M, width, height)
-
-        print("FOV measurement from calib (e.g. after undistortion):")
-        print(f"{cam}")
-        print(f"Horizontal FOV: {hFov}")
-        print(f"Vertical FOV: {vFov}")
-        print(f"Diagonal FOV: {dFov}")
-        print()
-        print("=============")
-        print()
-
-    M_rgb, width, height = calibData.getDefaultIntrinsics(dai.CameraBoardSocket.CAM_A)
-    print("RGB Camera Default intrinsics...")
-    print(f"Intrinsic : {M_rgb}")
-    print(f"Image width: {width}, height: {height}")
+    print("FOV measurement from calib (e.g. after undistortion):")
+    print(f"{cam}")
+    print(f"Horizontal FOV: {hFov}")
+    print(f"Vertical FOV: {vFov}")
+    print(f"Diagonal FOV: {dFov}")
+    print()
     print("=============")
+    print()
+
+    # M_rgb, width, height = calibData.getCameraIntrinsics(dai.CameraBoardSocket.CAM_A)
+    # print("RGB Camera Default intrinsics...")
+    # print(f"Intrinsic : {M_rgb}")
+    # print(f"Image width: {width}, height: {height}")
+    # print("=============")
 
     f_x = width * (1 / (2 * math.tan((hFov / 2) * (math.pi / 180))))
     print(f"Calculated focal length = {f_x} ")
-    print(f"Focal length from intrinsic matric = {calibData.getCameraIntrinsics(dai.CameraBoardSocket.RIGHT)[0][0]}")
+    print(f"Focal length from intrinsic matric = {calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT)[0][0]}")
