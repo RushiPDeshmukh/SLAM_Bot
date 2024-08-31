@@ -93,6 +93,10 @@ with device:
         latestPacket["image"] = None
         latestPacket["depth"] = None
         latestPacket['imu'] = None
+        
+        frameDepth = None
+        frameImage = None
+
 
         queueEvents = device.getQueueEvents(("image", "depth"))
         for queueName in queueEvents:
