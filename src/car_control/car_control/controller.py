@@ -25,7 +25,7 @@ class controller(Node):
         self.__odom_timer = self.create_timer(0.02,self.odom_publisher_callback)
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
         self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
-        
+        self.publishTransform = False
         self.visualize_path=True
         if self.visualize_path:        
             self.__odom_path_publisher = self.create_publisher(Path,'odom_path',10)
@@ -145,16 +145,17 @@ class controller(Node):
         self.__joint_state_publisher.publish(self.joint_state)
         
         # Publish tf for odom to base link
-        transform_ = TransformStamped()
-        transform_.header.stamp=self.get_clock().now().to_msg()
-        transform_.header.frame_id='odom'
-        transform_._child_frame_id='base_link'
+        if self.publishTransform:
+            transform_ = TransformStamped()
+            transform_.header.stamp=self.get_clock().now().to_msg()
+            transform_.header.frame_id='odom'
+            transform_._child_frame_id='base_link'
 
-        transform_.transform.translation.x = pos_x
-        transform_.transform.translation.y = pos_y
-        transform_.transform.rotation=self.get_quaternion_from_euler(0,0,yaw)         
-        
-        self.__odom_tf_broadcaster.sendTransform(transform_)
+            transform_.transform.translation.x = pos_x
+            transform_.transform.translation.y = pos_y
+            transform_.transform.rotation=self.get_quaternion_from_euler(0,0,yaw)         
+            
+            self.__odom_tf_broadcaster.sendTransform(transform_)
 
         # Visualize Path in rviz
         if self.visualize_path:
