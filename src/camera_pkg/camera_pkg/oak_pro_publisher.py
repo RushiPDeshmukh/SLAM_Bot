@@ -26,7 +26,7 @@ class OAK_Pro_Publisher(Node):
         
         # OAK D PRO  Depth calibration -- focal length and HFOV can be taken from device as it changes with resolution
         img_width_px = 640 
-        horizontal_fov = 43.715419733405426 # deg
+        horizontal_fov = 80 # deg 
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
@@ -41,16 +41,15 @@ class OAK_Pro_Publisher(Node):
         # Define sources and outputs
         self.left = self.pipeline.create(dai.node.MonoCamera)
         self.right = self.pipeline.create(dai.node.MonoCamera)
-        # Set manual exposure settings
-        exposure_time_us = 5000  # Example: 10000 microseconds (10ms)
-        sensitivity_iso = 800     # Example ISO value
-
-        self.left.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
-        self.right.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
-
-
         self.stereo = self.pipeline.create(dai.node.StereoDepth)
         self.IMU = self.pipeline.create(dai.node.IMU)
+
+        # Set manual exposure settings
+        # exposure_time_us = 5000  # Example: 10000 microseconds (10ms)
+        # sensitivity_iso = 800     # Example ISO value
+
+        # self.left.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
+        # self.right.initialControl.setManualExposure(exposure_time_us, sensitivity_iso)
 
         self.imageOut = self.pipeline.create(dai.node.XLinkOut)
         self.ImuOut = self.pipeline.create(dai.node.XLinkOut)
@@ -59,7 +58,6 @@ class OAK_Pro_Publisher(Node):
         self.imageOut.setStreamName("image")
         self.ImuOut.setStreamName("imu")
         self.disparityOut.setStreamName("depth")
-
 
         try:
             calibData = self.device.readCalibration2()
@@ -76,6 +74,7 @@ class OAK_Pro_Publisher(Node):
         self.right.setCamera("right")
         self.right.setFps(fps)
 
+        # IMU 
         self.IMU.enableIMUSensor(dai.IMUSensor.ACCELEROMETER,500)
         self.IMU.enableIMUSensor(dai.IMUSensor.GYROSCOPE_CALIBRATED,100)
         self.IMU.enableIMUSensor(dai.IMUSensor.MAGNETOMETER_CALIBRATED,100)
@@ -83,11 +82,11 @@ class OAK_Pro_Publisher(Node):
         self.IMU.setBatchReportThreshold(1)
         self.IMU.setMaxBatchReports(10)
 
+        # Stereo settings
         self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
         # LR-check is required for depth alignment
         self.stereo.setLeftRightCheck(True)
         # self.stereo.setDepthAlign(dai.CameraBoardSocket.RGB)  # Align depth to RGB
-
 
         ## Filters
         # stereo_config= self.stereo.initialConfig.get()
@@ -103,7 +102,7 @@ class OAK_Pro_Publisher(Node):
         # self.stereo.setSubpixel(True)
         
         # Linking
-        self.left.out.link(self.imageOut.input)
+        self.stereo.rectifiedRight.link(self.imageOut.input) ## Rectified right added
         self.left.out.link(self.stereo.left)
         self.right.out.link(self.stereo.right)
         self.stereo.disparity.link(self.disparityOut.input)

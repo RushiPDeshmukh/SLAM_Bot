@@ -16,7 +16,7 @@ class VisualOdometryNode(Node):
         super().__init__('visual_odom_node')
 
         self.K = np.array([[797.7258911132812, 0.0, 626.8783569335938], [0.0, 797.934814453125, 402.7000427246094], [0.0, 0.0, 1.0]]) # Camera Calibration matrix 
-
+                
         # Subscribe to depth camera - RGB and depth frames
         self.rgb_subscriber = Subscriber(self,Image,'/oak_pro/left_compressed')
         self.depth_subscriber = Subscriber(self,Image,'/oak_pro/depth_compressed')
@@ -80,7 +80,7 @@ class VisualOdometryNode(Node):
         self.path_msg = Path()
 
         # Visualization 
-        # cv2.namedWindow("features",cv2.WINDOW_NORMAL)
+        cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
         cv2.namedWindow("matches",cv2.WINDOW_NORMAL)
 
 
@@ -90,7 +90,7 @@ class VisualOdometryNode(Node):
     #         self.get_logger().info(f'K: {self.K}')
 
     def frame_callback(self,rgb_msg,depth_msg):
-        if self.frame_count %2 == 0:
+        if self.frame_count %1 == 0:
             
             # Get grayscale and depth images
             try:
@@ -102,7 +102,7 @@ class VisualOdometryNode(Node):
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
                 disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
                 depth_frame = self.disparity_to_depth(disp_frame)
-                # self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
+                self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
                 self.get_logger().info(f'Depth frame CV Bridge failed : {e2}')
 
@@ -110,10 +110,9 @@ class VisualOdometryNode(Node):
             # if img_frame is not None:
             #     cv2.namedWindow("grayscale",cv2.WINDOW_NORMAL)
             #     cv2.imshow("grayscale",img_frame)
-            # if depth_frame is not None:       
-            #     cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
-            #     normalized_depth = cv2.normalize(depth_frame,None,0,255,cv2.NORM_MINMAX,dtype=cv2.CV_8U)
-            #     cv2.imshow("depth",normalized_depth)
+            if depth_frame is not None:       
+                cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
+                cv2.imshow("depth",depth_frame)
             
             # if cv2.waitKey(1)==ord('q'):
             #     raise SystemExit
