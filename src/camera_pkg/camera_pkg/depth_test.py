@@ -110,6 +110,7 @@ with device:
         if latestPacket["depth"] is not None:
             frameDepth = latestPacket["depth"].getFrame()
             
+    
         if frameDepth is not None and frameImage is not None:
             cv2.namedWindow('Depth')
             cv2.setMouseCallback('Depth', click_event)
@@ -117,5 +118,5 @@ with device:
             cv2.namedWindow('Image')
             cv2.imshow('Image', frameImage)
             
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()

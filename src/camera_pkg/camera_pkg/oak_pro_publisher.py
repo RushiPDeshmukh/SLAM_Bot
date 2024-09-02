@@ -30,7 +30,7 @@ class OAK_Pro_Publisher(Node):
         self.focal_len_px = (img_width_px*0.5)/(np.tan(horizontal_fov*0.5*np.pi/180))
         self.baseline = 0.075 # m
         
-        fps = 20  # Hz
+        fps = 60  # Hz
         # The disparity is computed at this resolution, then upscaled to RGB resolution. Oak D Pro mono camera run at 800P
         monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
 
@@ -61,8 +61,8 @@ class OAK_Pro_Publisher(Node):
 
         try:
             calibData = self.device.readCalibration2()
-            self.get_logger().info(f"LEFT - K: {calibData.getCameraIntrinsics(dai.CameraBoardSocket.LEFT)}")
-            self.get_logger().info(f"Distortion coeff : {calibData.getDistortionCoefficients(dai.CameraBoardSocket.LEFT)}")
+            self.get_logger().info(f"LEFT - K: {calibData.getCameraIntrinsics(dai.CameraBoardSocket.RIGHT,640,400)}")
+            self.get_logger().info(f"Distortion coeff : {calibData.getDistortionCoefficients(dai.CameraBoardSocket.RIGHT)}")
 
         except:
             raise
@@ -85,7 +85,8 @@ class OAK_Pro_Publisher(Node):
         # Stereo settings
         self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_ACCURACY)
         # LR-check is required for depth alignment
-        self.stereo.setLeftRightCheck(True)
+        self.stereo.setSubpixel(True)
+        self.stereo.setSubpixelFractionalBits(3)
         # self.stereo.setDepthAlign(dai.CameraBoardSocket.RGB)  # Align depth to RGB
 
         ## Filters
@@ -102,10 +103,11 @@ class OAK_Pro_Publisher(Node):
         # self.stereo.setSubpixel(True)
         
         # Linking
+        # self.stereo.setOutputSize(640,400)
         self.stereo.rectifiedRight.link(self.imageOut.input) ## Rectified right added
         self.left.out.link(self.stereo.left)
         self.right.out.link(self.stereo.right)
-        self.stereo.disparity.link(self.disparityOut.input)
+        self.stereo.depth.link(self.disparityOut.input)
         self.IMU.out.link(self.ImuOut.input)
 
         #parameter
@@ -185,13 +187,13 @@ class OAK_Pro_Publisher(Node):
         timestamp = self.get_clock().now().to_msg()
         
         # Encode image with JPEG compression
-        _, image_buffer = cv2.imencode('.jpeg', rgb_image)
+        _, image_buffer = cv2.imencode('.png', rgb_image)
         
 
         # Create and publish compressed image message
         compressed_left_msg = Image()
         compressed_left_msg.header.stamp = timestamp
-        compressed_left_msg.encoding = 'jpeg'
+        compressed_left_msg.encoding = 'png'
         compressed_left_msg.data = image_buffer.tobytes()
 
         # Convert depth image to ROS Image message
