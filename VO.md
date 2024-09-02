@@ -1,3 +1,7 @@
+## VO in ROS
+1 Sept - Real time visual odometry implemented in vo_node.py   
+
+
 ## Visual Odometry trials
 
 #### Jupyter notebook 
