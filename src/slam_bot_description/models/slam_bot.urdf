@@ -21,6 +21,12 @@
   <!-- Position the wheels along the x-axis -->
   <xacro:property name="wheel_xoff" value="0.095"/>
 
+  <!-- Offsets for camera (cam_x_pos = 0.5*base_length + offset_x)-->
+  <xacro:property name="camera_xoff" value="0.015"/>
+  <xacro:property name="camera_yoff" value="0.0"/>
+  <xacro:property name="camera_zoff" value="0.013295"/>
+  <xacro:property name="oak_pro_baseline" value="0.075"/>
+
   <!-- Define intertial property macros  -->
   <xacro:macro name="box_inertia" params="m w h d">
     <inertial>
@@ -134,7 +140,7 @@
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="camera_link"/>
-    <origin xyz="${base_length/2} 0 0" rpy="0 0 0"/>  
+    <origin xyz="${(base_length/2)+camera_xoff} ${camera_yoff} ${(base_height/2)+camera_zoff}" rpy="0 ${-pi/18} 0"/>  
   </joint>
 
   <link name="camera_link">
@@ -160,7 +166,7 @@
   <!-- Optical link / joint for converting from camera coordinate system to ROS coordinate system-->
   <!-- TO-DO Check Oak D Pro documentation and add left optical joint  -->
   <joint name="camera_optical_joint" type="fixed">
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 -${oak_pro_baseline/2} 0.00465" rpy="${-pi/2} 0 -${pi/2}"/>
       <parent link="camera_link"/>
       <child link="camera_optical_link"/>
   </joint>
