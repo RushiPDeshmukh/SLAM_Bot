@@ -9,13 +9,14 @@ from cv_bridge import CvBridge,CvBridgeError
 import numpy as np
 from matplotlib import pyplot as plt
 import tf2_ros
-from tf2_ros import Buffer,TransformListener
+from tf2_ros import Buffer,TransformListener, TransformBroadcaster
+from scipy.spatial.transform import Rotation as R
 
 class VisualOdometryNode(Node):
     def __init__(self):
         super().__init__('visual_odom_node')
 
-        self.K = np.array([[797.7258911132812, 0.0, 626.8783569335938], [0.0, 797.934814453125, 402.7000427246094], [0.0, 0.0, 1.0]]) # Camera Calibration matrix 
+        self.K = np.array([[399.2978210449219, 0.0, 308.3040771484375], [0.0, 399.0950012207031, 197.78994750976562], [0.0, 0.0, 1.0]]) # Camera Calibration matrix 
                 
         # Subscribe to depth camera - RGB and depth frames
         self.rgb_subscriber = Subscriber(self,Image,'/oak_pro/left_compressed')
@@ -25,10 +26,24 @@ class VisualOdometryNode(Node):
         self.vo_publisher = self.create_publisher(Odometry,'/visual_odom',10)
         # self.camera_info_subscriber = self.create_subscription(CameraInfo,'/depth_camera/camera_info',self.get_camera_info,10)
         self.path_publisher = self.create_publisher(Path,'/trajectory',10)
+        self.odom_path_publisher = self.create_publisher(Path,'/trajectory',10)
+        self.__visual_odom_tf_broadcaster = TransformBroadcaster(self)
+
         self.bridge=CvBridge()
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer,self)
-
+        self.publishTransform = True
+        self.optical_to_base_transform = np.array([ # We take the base link source for this transform
+            [0.000, 0.174, 0.985, 0.163],
+            [-1.000, 0.000, 0.000, -0.037],
+            [0.000, -0.985, 0.174, 0.045],
+            [0.000, 0.000, 0.000, 1.000]
+            ])
+        # [ 0.000, -1.000,  0.000, -0.038],
+        # [ 0.174,  0.000, -0.985,  0.016],
+        # [ 0.985,  0.000,  0.174, -0.168],
+        # [ 0.000,  0.000,  0.000,  1.000]
+        
         self.curr_img_frame=None
         self.curr_depth_frame=None
         self.prev_img_frame=None
@@ -44,18 +59,12 @@ class VisualOdometryNode(Node):
         self.translations_x = []
         self.translations_y = []
         self.translations_z = []
-        self.camera_optical_to_base_tf = [
-            [0.000,  0.001,  1.000, -0.000],
-            [-0.000, 1.000, -0.001,  0.000],
-            [-1.000, -0.000, 0.000,  0.148],
-            [0.000,  0.000,  0.000,  1.000]
-            ]
-
+    
         """ Oak D Pro config """
         image_width = 640 # 400P setting for mono camera & stereo is scaled to mono
         horizontal_fov = 80 # deg
         self.baseline = 0.075 # m
-        self.focal_length_px = (image_width)/(2*np.tan(np.deg2rad(horizontal_fov)/2))
+        self.focal_length_px = self.K[0][0]#(image_width)/(2*np.tan(np.deg2rad(horizontal_fov)/2))
         
         self.robot_pose = np.zeros((1,4,4))
         self.robot_pose[0]=np.eye(4)
@@ -83,6 +92,22 @@ class VisualOdometryNode(Node):
         cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
         cv2.namedWindow("matches",cv2.WINDOW_NORMAL)
 
+        if self.publishTransform:
+            transform_ = TransformStamped()
+            transform_.header.stamp=self.get_clock().now().to_msg()
+            transform_.header.frame_id='odom'
+            transform_._child_frame_id='base_link'
+
+            transform_.transform.translation.x = 0.0
+            transform_.transform.translation.y = 0.0
+            transform_.transform.translation.z = 0.0
+            transform_.transform.rotation.x = 0.0
+            transform_.transform.rotation.y = 0.0
+            transform_.transform.rotation.z = 0.0
+            transform_.transform.rotation.w = 1.0        
+            
+            self.__visual_odom_tf_broadcaster.sendTransform(transform_)
+
 
     # def get_camera_info(self,info_msg):
     #     if self.K is not None:
@@ -95,13 +120,13 @@ class VisualOdometryNode(Node):
             # Get grayscale and depth images
             try:
                 img_frame = cv2.imdecode(np.frombuffer(rgb_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-                img_frame = cv2.rotate(img_frame,cv2.ROTATE_180)
+                # img_frame = cv2.rotate(img_frame,cv2.ROTATE_180)
             except CvBridgeError as e1:
                 self.get_logger().info(f'RGB frame CV Bridge failed : {e1}')
             try:
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-                disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
-                depth_frame = self.disparity_to_depth(disp_frame)
+                # disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
+                depth_frame = disp_frame/1000 #self.disparity_to_depth(disp_frame)
                 self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
                 self.get_logger().info(f'Depth frame CV Bridge failed : {e2}')
@@ -138,16 +163,25 @@ class VisualOdometryNode(Node):
                 rmat, tvec, image1_points, image2_points = self.estimate_motion(match,self.kp_array[self.curr_idx-1],self.kp_array[self.curr_idx],self.K, self.prev_depth_frame)
                 # self.visualize_camera_movement(self.prev_img_frame,image1_points,self.curr_img_frame,image2_points,True)
                 
-                self.trans_total += self.rot_total.dot(tvec)
-                self.rot_total = rmat.dot(self.rot_total)
+                this_transformation = np.eye(4)
+                this_transformation[:3, :3] = rmat
+                this_transformation[:3, 3] = np.squeeze(tvec)
 
-                self.get_logger().info(f'Translation = x:{self.trans_total[0]}, y:{self.trans_total[1]}, z:{self.trans_total[2]} ')
+                robot_transformation = self.optical_to_base_transform@this_transformation@np.linalg.inv(self.optical_to_base_transform)
+                new_robot_pose = self.robot_pose[-1]@robot_transformation
+                self.robot_pose=np.append(self.robot_pose,new_robot_pose.reshape(1,4,4),axis=0)
+                # self.trans_total += self.rot_total.dot(tvec)
+                # self.rot_total = rmat.dot(self.rot_total)
+
+                self.get_logger().info(f'Translation = x:{self.robot_pose[-1][:3,3][0]}, y:{self.robot_pose[-1][:3,3][1]}, z:{self.robot_pose[-1][:3,3][2]} ')
                 
                 # Update Trajectory
                 # self.update_trajectory(rmat,tvec)
-                self.publish_odometry(self.trans_total)
-                self.publish_path([float(i) for i in self.trans_total])
+                # self.publish_odometry(self.trans_total)
+                #self.publish_path([float(i) for i in self.trans_total])
 
+                self.publish_odometry(self.robot_pose[-1])
+                self.publish_path([float(i) for i in self.robot_pose[-1][:3,3]])
             self.curr_idx +=1
             self.prev_depth_frame=self.curr_depth_frame
             self.prev_img_frame = self.curr_img_frame
@@ -308,16 +342,9 @@ class VisualOdometryNode(Node):
         this_pose.header.frame_id='odom'
         this_pose.header.stamp=now_time
         
-        this_pose.pose.position.x = position[0]
-        this_pose.pose.position.y = position[2]     
-        this_pose.pose.position.z = position[1]
-        ## Pos[1] increases up dec down
-        ## Pos [2] increases towards left 
-        ## pos[0] increases forward
-
-        # this_pose.pose.position.x = position[0]
-        # this_pose.pose.position.y = position[1]
-        # this_pose.pose.position.z = position[2]
+        this_pose.pose.position.x = -position[0]
+        this_pose.pose.position.y = position[1]     
+        this_pose.pose.position.z = position[2]
         
         # try:
         #     # Get the transform from 'camera_optical_frame' to 'odom'
@@ -326,19 +353,45 @@ class VisualOdometryNode(Node):
         #     transformed_point = self.tf_buffer.transform(this_pose, 'odom')
         # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         #     self.get_logger().error(f'Error: {e}')
-                
-        #self.path_msg.poses.append(transformed_point)
+
         self.path_msg.poses.append(this_pose)
         self.path_publisher.publish(self.path_msg)
 
-    def publish_odometry(self,position,orientation=None):
+    def publish_odometry(self,transformation,position=None,orientation=None):
         vo_msg = Odometry()
         vo_msg.header.frame_id='odom'
         vo_msg.header.stamp=self.get_clock().now().to_msg()
-        vo_msg.pose.pose.position.x = float(position[0])
-        vo_msg.pose.pose.position.y = float(position[2])
-        vo_msg.pose.pose.position.z = float(position[1])
+
+        # this_transformation[:3, :3] = rmat
+        # this_transformation[:3, 3] = tvec
+        translation = transformation[:3, 3]
+        vo_msg.pose.pose.position.x = float(-translation[0])
+        vo_msg.pose.pose.position.y = float(translation[1])
+        vo_msg.pose.pose.position.z = float(translation[2])
+
+        rotation_obj = R.from_matrix(transformation[:3,:3])
+        rotation_quaternion = rotation_obj.as_quat()
+        
+        vo_msg.pose.pose.orientation.x = rotation_quaternion[0]
+        vo_msg.pose.pose.orientation.y = rotation_quaternion[1]
+        vo_msg.pose.pose.orientation.z = rotation_quaternion[2]
+        vo_msg.pose.pose.orientation.w = rotation_quaternion[3]
+
         self.vo_publisher.publish(vo_msg)
+
+        if self.publishTransform:
+            transform_ = TransformStamped()
+            transform_.header.stamp=self.get_clock().now().to_msg()
+            transform_.header.frame_id='odom'
+            transform_._child_frame_id='base_link'
+
+            transform_.transform.translation.x = vo_msg.pose.pose.position.x
+            transform_.transform.translation.y = vo_msg.pose.pose.position.y
+            transform_.transform.translation.z = vo_msg.pose.pose.position.z
+            transform_.transform.rotation=vo_msg.pose.pose.orientation         
+            
+            self.__visual_odom_tf_broadcaster.sendTransform(transform_)
+
 
     def visualize_features(self,image,kp):
         """
