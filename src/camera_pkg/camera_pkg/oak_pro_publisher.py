@@ -7,7 +7,7 @@ import numpy as np
 import depthai as dai
 from sensor_msgs.msg import Image , Imu, MagneticField
 from rclpy.executors import MultiThreadedExecutor
-
+from scipy.spatial.transform import Rotation as R
 class OAK_Pro_Publisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
@@ -111,7 +111,7 @@ class OAK_Pro_Publisher(Node):
         self.IMU.out.link(self.ImuOut.input)
 
         #parameter
-        self.frame_id = 'camera_frame'
+        self.frame_id = 'camera_link'
 
         self.frameGrabber()
 
@@ -167,10 +167,22 @@ class OAK_Pro_Publisher(Node):
         IMU_msg = Imu()
         IMU_msg.header.stamp = self.get_clock().now().to_msg()
         IMU_msg.header.frame_id="imu_link"
-        IMU_msg.orientation.x = rotation_vector.i
-        IMU_msg.orientation.y = rotation_vector.j
-        IMU_msg.orientation.z = rotation_vector.k
-        IMU_msg.orientation.w = rotation_vector.real
+
+        rot_vec_original = R.from_quat([rotation_vector.i,rotation_vector.j,rotation_vector.k,rotation_vector.real])
+        shift_vec = R.from_euler('xyz',[0.0,-1.5708,0.0])
+        shift_vec_1 = R.from_euler('xyz',[0.0,0.0,-1.5708])
+        final_vec = (rot_vec_original*shift_vec*shift_vec_1).as_quat()
+
+        # rot_vec_original = R.from_quat([rotation_vector.i,rotation_vector.j,rotation_vector.k,rotation_vector.real])
+        # shift_vec = R.from_euler('xyz',[3.14159,0.0,1.5708])
+
+        # final_vec = (rot_vec_original*shift_vec).as_quat()
+
+
+        IMU_msg.orientation.x = -final_vec[0]
+        IMU_msg.orientation.y = -final_vec[1]
+        IMU_msg.orientation.z = final_vec[2]
+        IMU_msg.orientation.w = final_vec[3]
         IMU_msg.linear_acceleration.x = acc_values.x
         IMU_msg.linear_acceleration.y = acc_values.y
         IMU_msg.linear_acceleration.z = acc_values.z
@@ -198,6 +210,7 @@ class OAK_Pro_Publisher(Node):
 
         # Create and publish compressed image message
         compressed_left_msg = Image()
+        compressed_left_msg.header.frame_id = self.frame_id
         compressed_left_msg.header.stamp = timestamp
         compressed_left_msg.encoding = 'png'
         compressed_left_msg.data = image_buffer.tobytes()
@@ -209,6 +222,7 @@ class OAK_Pro_Publisher(Node):
 
         # Create and publish compressed image message
         compressed_msg = Image()
+        compressed_msg.header.frame_id = self.frame_id
         compressed_msg.header.stamp = timestamp
         compressed_msg.encoding = 'png'
         compressed_msg.data = buffer.tobytes()
