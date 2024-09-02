@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the depth image using OpenCV
-disparity_frame = cv2.imread('/home/jidnyesha/SLAM_Bot/images/depth/depth_1723856464.8988976.png', cv2.IMREAD_UNCHANGED)
+disparity_frame = cv2.imread('/home/jidnyesha/SLAM_Bot/images/depth/depth_1723921568.451576.png', cv2.IMREAD_UNCHANGED)
 
 image_width = 640 # 400P setting for mono camera & stereo is scaled to mono
 horizontal_fov = 80 # deg
@@ -40,18 +40,23 @@ fig.canvas.mpl_connect('button_press_event', onclick)
 
 plt.show()
 
+while True:
+    cv2.namedWindow('Depth')
+    cv2.imshow('Depth', disparity_frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyAllWindows()
+        break
+# def disparity_to_depth(self,disparity_frame):
+#         """ OAK D Pro Stereo pair 
+#             HFOV = 80 degrees 
+#             baseline = 0.075 m
 
-def disparity_to_depth(self,disparity_frame):
-        """ OAK D Pro Stereo pair 
-            HFOV = 80 degrees 
-            baseline = 0.075 m
-
-            depth_m = fx_px * (baseline_m / disparity_px)
-        """
-        depth_frame = np.where(
-            disparity_frame != 0,
-            (self.focal_length_px * self.baseline) / disparity_frame,
-            0
-            )
+#             depth_m = fx_px * (baseline_m / disparity_px)
+#         """
+#         depth_frame = np.where(
+#             disparity_frame != 0,
+#             (self.focal_length_px * self.baseline) / disparity_frame,
+#             0
+#             )
         
-        return depth_frame
+#         return depth_frame
