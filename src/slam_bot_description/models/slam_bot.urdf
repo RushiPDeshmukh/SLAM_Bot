@@ -124,17 +124,6 @@
   <xacro:wheel prefix="drivewhl_fr" x_reflect="1" y_reflect="-1" />
   <xacro:wheel prefix="drivewhl_rl" x_reflect="-1" y_reflect="1" />
   <xacro:wheel prefix="drivewhl_rr" x_reflect="-1" y_reflect="-1" />
-  
-  <!-- *********************** IMU SETUP *********************************  -->
-  <!-- Each sensor must be attached to a link.                              "-0.10 0 0.05"--> 
-  
-  <joint name="imu_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="imu_link"/>
-    <origin xyz="${base_length/2} 0 0" rpy="0 0 0"/>  
-  </joint>
-
-  <link name="imu_link"/>
 
 <!-- *********************** CAMERA SETUP **********************************  -->
   <joint name="camera_joint" type="fixed">
@@ -172,6 +161,17 @@
   </joint>
 
   <link name="camera_optical_link"></link>
+
+ <!-- *********************** IMU SETUP *********************************  -->
+  <!-- Each sensor must be attached to a link.                              "-0.10 0 0.05"--> 
+  
+  <joint name="imu_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0" rpy="${pi} ${pi} ${pi/2}"/>  
+  </joint>
+
+  <link name="imu_link"/>
 
   <!-- *********************** LIDAR SETUP ********************************** 
   <joint name="lidar_joint" type="fixed">
