@@ -75,9 +75,9 @@ class OAK_Pro_Publisher(Node):
         self.right.setFps(fps)
 
         # IMU 
-        self.IMU.enableIMUSensor(dai.IMUSensor.ACCELEROMETER,500)
-        self.IMU.enableIMUSensor(dai.IMUSensor.GYROSCOPE_CALIBRATED,100)
-        self.IMU.enableIMUSensor(dai.IMUSensor.MAGNETOMETER_CALIBRATED,100)
+        self.IMU.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION,dai.IMUSensor.ROTATION_VECTOR],400)
+        # self.IMU.enableIMUSensor(dai.IMUSensor.GYROSCOPE_CALIBRATED,100)
+        # self.IMU.enableIMUSensor(dai.IMUSensor.MAGNETOMETER_CALIBRATED,100)
 
         self.IMU.setBatchReportThreshold(1)
         self.IMU.setMaxBatchReports(10)
@@ -159,28 +159,34 @@ class OAK_Pro_Publisher(Node):
     
     def imu_data_publisher(self,imu_packet):
         #TO_DO: Sync the Accelerometer with Gyroscope
-        # print(imu_packet)
+        print(imu_packet, dir(imu_packet))
         acc_values = imu_packet.acceleroMeter
-        gyro_values = imu_packet.gyroscope
-        mag_value = imu_packet.magneticField
+        # gyro_values = imu_packet.gyroscope
+        # mag_value = imu_packet.magneticField
+        rotation_vector = imu_packet.rotationVector
         IMU_msg = Imu()
-        Mag_msg = MagneticField()
         IMU_msg.header.stamp = self.get_clock().now().to_msg()
         IMU_msg.header.frame_id="imu_link"
+        IMU_msg.orientation.x = rotation_vector.i
+        IMU_msg.orientation.y = rotation_vector.j
+        IMU_msg.orientation.z = rotation_vector.k
+        IMU_msg.orientation.w = rotation_vector.real
         IMU_msg.linear_acceleration.x = acc_values.x
         IMU_msg.linear_acceleration.y = acc_values.y
         IMU_msg.linear_acceleration.z = acc_values.z
-        IMU_msg.angular_velocity.x = gyro_values.x
-        IMU_msg.angular_velocity.y = gyro_values.y
-        IMU_msg.angular_velocity.z = gyro_values.z
-        Mag_msg.header.stamp = self.get_clock().now().to_msg()
-        Mag_msg.header.frame_id="imu_link"
-        Mag_msg.magnetic_field.x = mag_value.x
-        Mag_msg.magnetic_field.y = mag_value.y
-        Mag_msg.magnetic_field.z = mag_value.z
+        # IMU_msg.angular_velocity.x = gyro_values.x
+        # IMU_msg.angular_velocity.y = gyro_values.y
+        # IMU_msg.angular_velocity.z = gyro_values.z
+        
+        # Mag_msg = MagneticField()
+        # Mag_msg.header.stamp = self.get_clock().now().to_msg()
+        # Mag_msg.header.frame_id="imu_link"
+        # Mag_msg.magnetic_field.x = mag_value.x
+        # Mag_msg.magnetic_field.y = mag_value.y
+        # Mag_msg.magnetic_field.z = mag_value.z
         
         self.imu_pub.publish(IMU_msg)
-        self.mag_pub.publish(Mag_msg)
+        # self.mag_pub.publish(Mag_msg)
        
 
     def publish_rgbd_image(self, rgb_image, depth_image):
