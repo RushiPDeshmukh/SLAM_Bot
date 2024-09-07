@@ -63,10 +63,10 @@ def generate_launch_description():
   ld = LaunchDescription()
 
   # Add any actions
-  ld.add_action(start_robot_state_publisher_cmd)
-  # ld.add_action(start_car_controller)
-  # ld.add_action(start_camera_imu_publisher)
-  ld.add_action(start_robot_localization_cmd)
-  ld.add_action(start_rviz_cmd)
+  # ld.add_action(start_robot_state_publisher_cmd)
+  ld.add_action(start_car_controller)
+  ld.add_action(start_camera_imu_publisher)
+  # ld.add_action(start_robot_localization_cmd)
+  # ld.add_action(start_rviz_cmd)
   # ld.add_action(start_visual_odometry)
   return ld
