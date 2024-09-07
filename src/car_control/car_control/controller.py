@@ -186,8 +186,8 @@ class controller(Node):
         lin_x = (self.wheel_radius/4)*(motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]+motor_angular_velocities[3])
         lin_y = (self.wheel_radius/4)*(-motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]-motor_angular_velocities[3])
         ang_z = (self.wheel_radius/(4*(self.L+self.W)))*(-motor_angular_velocities[0]+motor_angular_velocities[1]-motor_angular_velocities[2]+motor_angular_velocities[3])
-        if not(lin_x == 0.0 and lin_y == 0.0 and ang_z == 0.0):
-            self.get_logger().info(f'-- Vx = {lin_x:.2e} , Vy = {lin_y:.2e}, W = {ang_z:.2e}')
+        # if not(lin_x == 0.0 and lin_y == 0.0 and ang_z == 0.0):
+            # self.get_logger().info(f'-- Vx = {lin_x:.2e} , Vy = {lin_y:.2e}, W = {ang_z:.2e}')
         prev_yaw = self.get_euler_from_quaternion(prev_odom.pose.pose.orientation)[2]
         pose_x = prev_odom.pose.pose.position.x + del_time*(lin_x*np.cos(prev_yaw)-lin_y*np.sin(prev_yaw))
         pose_y = prev_odom.pose.pose.position.y + del_time*(lin_x*np.sin(prev_yaw)+lin_y*np.cos(prev_yaw))

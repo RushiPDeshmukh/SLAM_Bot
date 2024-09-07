@@ -8,13 +8,22 @@ import depthai as dai
 from sensor_msgs.msg import Image , Imu, MagneticField
 from rclpy.executors import MultiThreadedExecutor
 from scipy.spatial.transform import Rotation as R
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+
 class OAK_Pro_Publisher(Node):
     def __init__(self):
         super().__init__('rgbd_publisher')
-        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',1)
-        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',1)
-        self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',1)
-        self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',1)
+
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
+        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',qos_profile)
+        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',qos_profile)
+        self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',qos_profile)
+        self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',qos_profile)
 
         self.timestamp_rgb=None
         self.timestamp_depth=None
@@ -159,7 +168,7 @@ class OAK_Pro_Publisher(Node):
     
     def imu_data_publisher(self,imu_packet):
         #TO_DO: Sync the Accelerometer with Gyroscope
-        print(imu_packet, dir(imu_packet))
+        # print(imu_packet, dir(imu_packet))
         acc_values = imu_packet.acceleroMeter
         # gyro_values = imu_packet.gyroscope
         # mag_value = imu_packet.magneticField
@@ -177,7 +186,6 @@ class OAK_Pro_Publisher(Node):
         # shift_vec = R.from_euler('xyz',[3.14159,0.0,1.5708])
 
         # final_vec = (rot_vec_original*shift_vec).as_quat()
-
 
         IMU_msg.orientation.x = -final_vec[0]
         IMU_msg.orientation.y = -final_vec[1]
