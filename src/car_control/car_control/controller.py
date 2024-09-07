@@ -25,7 +25,7 @@ class controller(Node):
         self.__odom_timer = self.create_timer(0.02,self.odom_publisher_callback)
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
         self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
-        self.publishTransform = True
+        self.publishTransform = False
         self.visualize_path=True
         if self.visualize_path:        
             self.__odom_path_publisher = self.create_publisher(Path,'odom_path',10)
