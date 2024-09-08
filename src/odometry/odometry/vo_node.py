@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 from sensor_msgs.msg import Image,CameraInfo
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from nav_msgs.msg import Path, Odometry
@@ -9,7 +10,7 @@ from cv_bridge import CvBridge,CvBridgeError
 import numpy as np
 from matplotlib import pyplot as plt
 import tf2_ros
-from tf2_ros import Buffer,TransformListener, TransformBroadcaster
+from tf2_ros import Buffer,TransformListener, TransformBroadcaster, LookupException, ConnectivityException, ExtrapolationException
 from scipy.spatial.transform import Rotation as R
 
 class VisualOdometryNode(Node):
@@ -32,7 +33,10 @@ class VisualOdometryNode(Node):
         self.bridge=CvBridge()
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer,self)
-        self.publishTransform = True
+        # Note: tf describes how to move from the source frame to the target frame.
+        #       Ex - source base_link to target odom means we get pos and orientation of base link relative to odom ( Where is the base link in odom )
+
+        self.publishTransform = False
         self.optical_to_base_transform = np.array([ # We take the base link source for this transform
             [0.000, 0.174, 0.985, 0.163],
             [-1.000, 0.000, 0.000, -0.037],
@@ -66,8 +70,10 @@ class VisualOdometryNode(Node):
         self.baseline = 0.075 # m
         self.focal_length_px = self.K[0][0]#(image_width)/(2*np.tan(np.deg2rad(horizontal_fov)/2))
         
+        
         self.robot_pose = np.zeros((1,4,4))
-        self.robot_pose[0]=np.eye(4)
+
+        self.robot_pose[0]= np.eye(4) #self.get_robot_tf() 
 
         self.camera_pose = np.zeros((1,4,4))
         self.camera_pose[0]=np.eye(4)
@@ -78,7 +84,7 @@ class VisualOdometryNode(Node):
         self.orb = cv2.ORB_create()
         
         # Create SIFT and FLANN matcher
-        self.sift = cv2.xfeatures2d.SIFT_create()
+        self.sift = cv2.SIFT_create()
         
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
@@ -108,11 +114,14 @@ class VisualOdometryNode(Node):
             
             self.__visual_odom_tf_broadcaster.sendTransform(transform_)
 
-
-    # def get_camera_info(self,info_msg):
-    #     if self.K is not None:
-    #         self.K = info_msg.k # float64 [9] data type
-    #         self.get_logger().info(f'K: {self.K}')
+    def get_robot_tf(self):
+        transformation = None
+        try:
+            transformation = self.tf_buffer.lookup_transform('odom','base_link',Time())
+        except (LookupException, ConnectivityException, ExtrapolationException):
+            self.get_logger().warn(f'Transform between base link and odom not ready yet.')
+        if transformation is not None:
+            translation = [transformation.transform.translation.x,transformation.transform.translation.y,transformation.transform.translation.z]
 
     def frame_callback(self,rgb_msg,depth_msg):
         if self.frame_count %1 == 0:
@@ -127,7 +136,7 @@ class VisualOdometryNode(Node):
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
                 # disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
                 depth_frame = disp_frame/1000 #self.disparity_to_depth(disp_frame)
-                self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
+                # self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
                 self.get_logger().info(f'Depth frame CV Bridge failed : {e2}')
 
@@ -166,14 +175,15 @@ class VisualOdometryNode(Node):
                 this_transformation = np.eye(4)
                 this_transformation[:3, :3] = rmat
                 this_transformation[:3, 3] = np.squeeze(tvec)
-
+                # self.get_logger().info(f'Translation: {tvec}')
                 robot_transformation = self.optical_to_base_transform@this_transformation@np.linalg.inv(self.optical_to_base_transform)
                 new_robot_pose = self.robot_pose[-1]@robot_transformation
                 self.robot_pose=np.append(self.robot_pose,new_robot_pose.reshape(1,4,4),axis=0)
-                # self.trans_total += self.rot_total.dot(tvec)
-                # self.rot_total = rmat.dot(self.rot_total)
-
-                self.get_logger().info(f'Translation = x:{self.robot_pose[-1][:3,3][0]}, y:{self.robot_pose[-1][:3,3][1]}, z:{self.robot_pose[-1][:3,3][2]} ')
+                self.trans_total += self.rot_total.dot(tvec)
+                self.rot_total = rmat.dot(self.rot_total)
+                self.get_logger().info(f'Translation: {self.trans_total}')
+                self.get_logger().info(f'Rotation: {self.rot_total}')
+                # self.get_logger().info(f'Translation = x:{self.robot_pose[-1][:3,3][0]}, y:{self.robot_pose[-1][:3,3][1]}, z:{self.robot_pose[-1][:3,3][2]} ')
                 
                 # Update Trajectory
                 # self.update_trajectory(rmat,tvec)
@@ -257,6 +267,7 @@ class VisualOdometryNode(Node):
             u1, v1 = kp1[m.queryIdx].pt
             u2, v2 = kp2[m.trainIdx].pt
             
+
             # Get the scale of features f[k - 1] from the depth map
             s = depth1[int(v1), int(u1)]
             
@@ -328,11 +339,11 @@ class VisualOdometryNode(Node):
         self.robot_pose=np.append(self.robot_pose,robot_pose.reshape(1,4,4),axis=0)
         # Calculate current camera position from origin
         position = self.robot_pose[self.curr_idx] @ np.array([0., 0., 0., 1.])
-        self.get_logger().info(f'Position {self.curr_idx} : {position}')
+        # self.get_logger().info(f'Position {self.curr_idx} : {position}')
         # Build trajectory
         self.trajectory=np.append(self.trajectory,position[0:3].reshape(3,1),axis=1)
         self.publish_path(position)
-        self.get_logger().info(f'Trajectory obtained {np.shape(self.trajectory)}')
+        # self.get_logger().info(f'Trajectory obtained {np.shape(self.trajectory)}')
 
     def publish_path(self,position):
         now_time = self.get_clock().now().to_msg()
@@ -365,10 +376,11 @@ class VisualOdometryNode(Node):
         # this_transformation[:3, :3] = rmat
         # this_transformation[:3, 3] = tvec
         translation = transformation[:3, 3]
-        vo_msg.pose.pose.position.x = float(-translation[0])
+        vo_msg.pose.pose.position.x = float(translation[0])
         vo_msg.pose.pose.position.y = float(translation[1])
         vo_msg.pose.pose.position.z = float(translation[2])
 
+        # rotation_mat = transformation[:3,:3] #np.dot(R_flip,transformation[:3,:3])
         rotation_obj = R.from_matrix(transformation[:3,:3])
         rotation_quaternion = rotation_obj.as_quat()
         
