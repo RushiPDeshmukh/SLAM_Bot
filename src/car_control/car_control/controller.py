@@ -20,11 +20,13 @@ class controller(Node):
     def __init__(self):
         super().__init__('controller')
 
-        self.__subcriber = self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,1)
+        self.__command_subcriber = self.create_subscription(Twist,'cmd_vel',self.cmd_vel_callback,1)
+        self.__corrected_pose_subscriber = self.create_subscription(Odometry,'odometry/filtered',self.update_prev_odom,1)
         self.__odom_publisher = self.create_publisher(Odometry,'/wheel_odom',10)
         self.__odom_timer = self.create_timer(0.02,self.odom_publisher_callback)
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
         self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
+        
         self.publishTransform = False
         self.visualize_path=True
         if self.visualize_path:        
@@ -66,6 +68,8 @@ class controller(Node):
         self.joint_state.position.append(0.0)
         
         self.wheel_vel_rolling_avg=[0.0,0.0,0.0,0.0] #[ FL , FR , RL , RR ]
+
+        self.correct_pose_with_filtered_odom = True
         
 
     def cmd_vel_callback(self,msg):
@@ -87,6 +91,12 @@ class controller(Node):
         except Exception as err:
             print(f"Exception: {err}. Stopping the car.")
             self.car_controller.setMotorSpeeds([0,0,0,0])
+
+    
+    def update_prev_odom(self,msg):
+        if self.correct_pose_with_filtered_odom and msg.header.stamp == self.prev_odom.header.stamp:
+            # self.get_logger().info(f'Updated Prev Pose with filtered Odom')
+            self.prev_odom = msg
 
     def angularVelocities_to_PWM_convertor(self,wheel_angular_velocities):
             # print(wheel_angular_velocities)
