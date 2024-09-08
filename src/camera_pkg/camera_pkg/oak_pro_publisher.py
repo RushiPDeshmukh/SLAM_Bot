@@ -20,10 +20,10 @@ class OAK_Pro_Publisher(Node):
             depth=1
         )
 
-        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',qos_profile)
-        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',qos_profile)
+        self.image_pub = self.create_publisher(Image,'oak_pro/left_compressed',1)
+        self.depth_pub = self.create_publisher(Image,'oak_pro/depth_compressed',1)
         self.imu_pub = self.create_publisher(Imu,'/imu/data_raw',qos_profile)
-        self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',qos_profile)
+        # self.mag_pub = self.create_publisher(MagneticField,'/imu/mag',qos_profile)
 
         self.timestamp_rgb=None
         self.timestamp_depth=None
