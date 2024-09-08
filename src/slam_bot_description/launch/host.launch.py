@@ -80,7 +80,7 @@ def generate_launch_description():
   # ld.add_action(start_camera_imu_publisher)
   ld.add_action(start_robot_localization_cmd)
   ld.add_action(start_rviz_cmd)
-  # ld.add_action(start_visual_odometry)
+  ld.add_action(start_visual_odometry)
   ld.add_action(joy_node)
   ld.add_action(tele_op_node)
   return ld
