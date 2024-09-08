@@ -2,14 +2,13 @@ import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import Image,CameraInfo
-from geometry_msgs.msg import PoseStamped, TransformStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
 from nav_msgs.msg import Path, Odometry
 from message_filters import TimeSynchronizer,Subscriber
 import cv2
 from cv_bridge import CvBridge,CvBridgeError
 import numpy as np
 from matplotlib import pyplot as plt
-import tf2_ros
 from tf2_ros import Buffer,TransformListener, TransformBroadcaster, LookupException, ConnectivityException, ExtrapolationException
 from scipy.spatial.transform import Rotation as R
 
@@ -25,7 +24,6 @@ class VisualOdometryNode(Node):
         self.sync_subscriber = TimeSynchronizer([self.rgb_subscriber,self.depth_subscriber],10)
         self.sync_subscriber.registerCallback(self.frame_callback)
         self.vo_publisher = self.create_publisher(Odometry,'/visual_odom',10)
-        # self.camera_info_subscriber = self.create_subscription(CameraInfo,'/depth_camera/camera_info',self.get_camera_info,10)
         self.path_publisher = self.create_publisher(Path,'/trajectory',10)
         self.odom_path_publisher = self.create_publisher(Path,'/trajectory',10)
         self.__visual_odom_tf_broadcaster = TransformBroadcaster(self)
@@ -43,15 +41,12 @@ class VisualOdometryNode(Node):
             [0.000, -0.985, 0.174, 0.045],
             [0.000, 0.000, 0.000, 1.000]
             ])
-        # [ 0.000, -1.000,  0.000, -0.038],
-        # [ 0.174,  0.000, -0.985,  0.016],
-        # [ 0.985,  0.000,  0.174, -0.168],
-        # [ 0.000,  0.000,  0.000,  1.000]
-        
         self.curr_img_frame=None
         self.curr_depth_frame=None
         self.prev_img_frame=None
         self.prev_depth_frame=None
+        self.prev_timestamp = None
+
         self.kp_array=[]
         self.des_array=[]
         self.matches_array=[]
@@ -73,17 +68,18 @@ class VisualOdometryNode(Node):
         
         self.robot_pose = np.zeros((1,4,4))
 
-        self.robot_pose[0]= np.eye(4) #self.get_robot_tf() 
+        self.robot_pose[0]= np.eye(4) 
 
         self.camera_pose = np.zeros((1,4,4))
         self.camera_pose[0]=np.eye(4)
-        
+         
         self.trajectory = np.zeros((3, 1))
 
         # Initialize ORB detector
         self.orb = cv2.ORB_create()
         
-        # Create SIFT and FLANN matcher
+        # Create SURF and FLANN matcher
+        # self.sift = cv2.xfeatures2d.SURF_create()
         self.sift = cv2.SIFT_create()
         
         FLANN_INDEX_KDTREE = 1
@@ -114,36 +110,22 @@ class VisualOdometryNode(Node):
             
             self.__visual_odom_tf_broadcaster.sendTransform(transform_)
 
-    def get_robot_tf(self):
-        transformation = None
-        try:
-            transformation = self.tf_buffer.lookup_transform('odom','base_link',Time())
-        except (LookupException, ConnectivityException, ExtrapolationException):
-            self.get_logger().warn(f'Transform between base link and odom not ready yet.')
-        if transformation is not None:
-            translation = [transformation.transform.translation.x,transformation.transform.translation.y,transformation.transform.translation.z]
-
     def frame_callback(self,rgb_msg,depth_msg):
         if self.frame_count %1 == 0:
-            
+            timestamp = rgb_msg.header.stamp 
             # Get grayscale and depth images
             try:
                 img_frame = cv2.imdecode(np.frombuffer(rgb_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-                # img_frame = cv2.rotate(img_frame,cv2.ROTATE_180)
             except CvBridgeError as e1:
                 self.get_logger().info(f'RGB frame CV Bridge failed : {e1}')
             try:
                 disp_frame = cv2.imdecode(np.frombuffer(depth_msg.data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-                # disp_frame = cv2.rotate(disp_frame,cv2.ROTATE_180)
-                depth_frame = disp_frame/1000 #self.disparity_to_depth(disp_frame)
+                depth_frame = disp_frame/1000 
                 # self.get_logger().info(f'DEPTH at {np.shape(depth_frame)[0]//2} {np.shape(depth_frame)[1]//2} == {depth_frame[np.shape(depth_frame)[0]//2][np.shape(depth_frame)[1]//2]}')
             except CvBridgeError as e2:
                 self.get_logger().info(f'Depth frame CV Bridge failed : {e2}')
 
             # Visualize
-            # if img_frame is not None:
-            #     cv2.namedWindow("grayscale",cv2.WINDOW_NORMAL)
-            #     cv2.imshow("grayscale",img_frame)
             if depth_frame is not None:       
                 cv2.namedWindow("depth",cv2.WINDOW_NORMAL)
                 cv2.imshow("depth",depth_frame)
@@ -151,8 +133,6 @@ class VisualOdometryNode(Node):
             # if cv2.waitKey(1)==ord('q'):
             #     raise SystemExit
             
-            # img_frame = img_frame[200:,:]
-            # depth_frame = depth_frame[200:,:]
             self.curr_img_frame=img_frame
             self.curr_depth_frame=depth_frame
 
@@ -175,26 +155,23 @@ class VisualOdometryNode(Node):
                 this_transformation = np.eye(4)
                 this_transformation[:3, :3] = rmat
                 this_transformation[:3, 3] = np.squeeze(tvec)
-                # self.get_logger().info(f'Translation: {tvec}')
+                this_transformation = np.linalg.inv(this_transformation)
+
                 robot_transformation = self.optical_to_base_transform@this_transformation@np.linalg.inv(self.optical_to_base_transform)
                 new_robot_pose = self.robot_pose[-1]@robot_transformation
                 self.robot_pose=np.append(self.robot_pose,new_robot_pose.reshape(1,4,4),axis=0)
                 self.trans_total += self.rot_total.dot(tvec)
                 self.rot_total = rmat.dot(self.rot_total)
-                self.get_logger().info(f'Translation: {self.trans_total}')
-                self.get_logger().info(f'Rotation: {self.rot_total}')
-                # self.get_logger().info(f'Translation = x:{self.robot_pose[-1][:3,3][0]}, y:{self.robot_pose[-1][:3,3][1]}, z:{self.robot_pose[-1][:3,3][2]} ')
+                # self.get_logger().info(f'Tvec: {tvec}')
+                # self.get_logger().info(f'Translation: {self.trans_total}')
+                # self.get_logger().info(f'Rotation: {self.rot_total}')
                 
-                # Update Trajectory
-                # self.update_trajectory(rmat,tvec)
-                # self.publish_odometry(self.trans_total)
-                #self.publish_path([float(i) for i in self.trans_total])
-
-                self.publish_odometry(self.robot_pose[-1])
-                self.publish_path([float(i) for i in self.robot_pose[-1][:3,3]])
+                self.publish_odometry(self.robot_pose[-1],timestamp)
+                self.publish_path([float(i) for i in self.robot_pose[-1][:3,3]],timestamp)
             self.curr_idx +=1
             self.prev_depth_frame=self.curr_depth_frame
             self.prev_img_frame = self.curr_img_frame
+            self.last_timestamp = timestamp
 
         self.frame_count += 1
 
@@ -275,8 +252,6 @@ class VisualOdometryNode(Node):
             if s < 100.0 and s!=0:
                 # Transform pixel coordinates to camera coordinates using the pinhole camera model
                 p_c = np.linalg.inv(k) @ (s * np.array([u1, v1, 1]))
-                
-                # Save the results
                 image1_points.append([u1, v1])
                 image2_points.append([u2, v2])
                 objectpoints.append(p_c)
@@ -290,7 +265,6 @@ class VisualOdometryNode(Node):
             _, rvec, tvec, _ = cv2.solvePnPRansac(objectpoints, imagepoints, k, None)
             # Convert rotation vector to rotation matrix
             rmat, _ = cv2.Rodrigues(rvec)
-            # self.get_logger().info(f'Translation : {tvec} Rotation : {rmat}')
         except:
             self.get_logger().warn(f'PNP failed due to less features ! ')
             rmat = np.eye(3)
@@ -345,42 +319,30 @@ class VisualOdometryNode(Node):
         self.publish_path(position)
         # self.get_logger().info(f'Trajectory obtained {np.shape(self.trajectory)}')
 
-    def publish_path(self,position):
-        now_time = self.get_clock().now().to_msg()
+    def publish_path(self,position,ts):
+
         self.path_msg.header.frame_id='odom'
-        self.path_msg.header.stamp = now_time
+        self.path_msg.header.stamp = ts
         this_pose = PoseStamped()
         this_pose.header.frame_id='odom'
-        this_pose.header.stamp=now_time
+        this_pose.header.stamp=ts
         
-        this_pose.pose.position.x = -position[0]
+        this_pose.pose.position.x = position[0]
         this_pose.pose.position.y = position[1]     
         this_pose.pose.position.z = position[2]
-        
-        # try:
-        #     # Get the transform from 'camera_optical_frame' to 'odom'
-        #     transform = self.tf_buffer.lookup_transform('camera_optical_link', 'odom', rclpy.time.Time())
-        #     # Transform the pose to the 'odom' frame
-        #     transformed_point = self.tf_buffer.transform(this_pose, 'odom')
-        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        #     self.get_logger().error(f'Error: {e}')
 
         self.path_msg.poses.append(this_pose)
         self.path_publisher.publish(self.path_msg)
 
-    def publish_odometry(self,transformation,position=None,orientation=None):
+    def publish_odometry(self,transformation,ts):
         vo_msg = Odometry()
         vo_msg.header.frame_id='odom'
-        vo_msg.header.stamp=self.get_clock().now().to_msg()
-
-        # this_transformation[:3, :3] = rmat
-        # this_transformation[:3, 3] = tvec
+        vo_msg.header.stamp=ts
         translation = transformation[:3, 3]
         vo_msg.pose.pose.position.x = float(translation[0])
         vo_msg.pose.pose.position.y = float(translation[1])
         vo_msg.pose.pose.position.z = float(translation[2])
 
-        # rotation_mat = transformation[:3,:3] #np.dot(R_flip,transformation[:3,:3])
         rotation_obj = R.from_matrix(transformation[:3,:3])
         rotation_quaternion = rotation_obj.as_quat()
         
@@ -389,11 +351,22 @@ class VisualOdometryNode(Node):
         vo_msg.pose.pose.orientation.z = rotation_quaternion[2]
         vo_msg.pose.pose.orientation.w = rotation_quaternion[3]
 
+        # Publish velocity
+        prev_robot_tf = self.robot_pose[-2]
+        del_x = float(translation[0] - prev_robot_tf[:3,3][0])
+        del_y = float(translation[1] - prev_robot_tf[:3,3][1])
+        relative_rot = transformation[:3,:3]@np.linalg.inv(prev_robot_tf[:3,:3])
+        del_yaw = get_euler_from_quaternion(R.from_matrix(relative_rot).as_quat())[2]
+        time_delta = calculate_time_delta(ts,self.last_timestamp)
+        vo_msg.twist.twist.linear.x = del_x/time_delta
+        vo_msg.twist.twist.linear.y = del_y/time_delta
+        vo_msg.twist.twist.angular.z = del_yaw/time_delta
+
         self.vo_publisher.publish(vo_msg)
 
         if self.publishTransform:
             transform_ = TransformStamped()
-            transform_.header.stamp=self.get_clock().now().to_msg()
+            transform_.header.stamp=ts
             transform_.header.frame_id='odom'
             transform_._child_frame_id='base_link'
 
@@ -447,6 +420,49 @@ class VisualOdometryNode(Node):
         # plt.imshow(image_matches)
         # plt.show()
 
+def calculate_time_delta(stamp1, stamp2) -> float:
+    # Calculate the difference in seconds
+    sec_diff = stamp2.sec - stamp1.sec
+    
+    # Calculate the difference in nanoseconds
+    nanosec_diff = stamp2.nanosec - stamp1.nanosec
+    
+    # If nanosecond difference is negative, adjust the seconds and nanoseconds
+    if nanosec_diff < 0:
+        sec_diff -= 1
+        nanosec_diff += 1_000_000_000  # Convert 1 second into nanoseconds
+    
+    # Convert the total difference into seconds (sec + nanoseconds converted to seconds)
+    delta = sec_diff + nanosec_diff * 1e-9
+    return delta
+
+def get_euler_from_quaternion(quat_):
+    """
+    Convert a quaternion into Euler angles (roll, pitch, yaw)
+    roll is rotation around the x-axis in radians (counterclockwise)
+    pitch is rotation around the y-axis in radians (counterclockwise)
+    yaw is rotation around the z-axis in radians (counterclockwise)
+    """
+    quat = Quaternion()
+    quat.x = quat_[0]
+    quat.y = quat_[1]
+    quat.z = quat_[2]
+    quat.w = quat_[3]
+
+    t0 = +2.0 * (quat.w * quat.x + quat.y * quat.z)
+    t1 = +1.0 - 2.0 * (quat.x * quat.x + quat.y * quat.y)
+    roll_x = np.arctan2(t0, t1)
+
+    t2 = +2.0 * (quat.w * quat.y - quat.z * quat.x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = np.arcsin(t2)
+
+    t3 = +2.0 * (quat.w * quat.z + quat.x * quat.y)
+    t4 = +1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z)
+    yaw_z = np.arctan2(t3, t4)
+
+    return roll_x, pitch_y, yaw_z  # in radians
 
 def main(args=None):
     rclpy.init(args=args)
