@@ -102,7 +102,7 @@ class VisualOdometry():
         
         if self.ref_image is None:
             # Feature extraction
-            self.ref_image_features = self.extract_frame_features(current_image)
+            self.ref_image_features = self.feature_extractor(current_image)
             self.ref_image = current_image
             self.ref_depth_image = current_depth
         
