@@ -48,6 +48,9 @@ class M5Module4EncoderMotorController:
             read_buf = bus.read_i2c_block_data(self.MODULE_4ENCODERMOTOR_ADDR,addr,16)
         for i in range(0, 16, 4):
             value = (read_buf[i] << 24) | (read_buf[i+1] << 16) | (read_buf[i+2] << 8) | read_buf[i+3]
+            # Check if the value is negative (signed 32-bit integer)
+            if value & (1 << 31):  # If the most significant bit is set
+                value -= 1 << 32   # Convert it to a negative value
             values.append(value)
         return values
     
