@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
-from utils import *
 import rclpy
-import VisualOdometry
+from .VisualOdometry import VisualOdometry
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import Image,CameraInfo
@@ -132,3 +131,18 @@ class VisualOdometryNode(Node):
             transform_.transform.rotation=vo_msg.pose.pose.orientation         
             
             self.__visual_odom_tf_broadcaster.sendTransform(transform_)
+
+    
+def main(args=None):
+    rclpy.init(args=args)
+    vo_slam_bot = VisualOdometryNode()
+    try:
+        rclpy.spin(vo_slam_bot)
+    except (SystemExit,KeyboardInterrupt):
+        rclpy.logging.get_logger("Quitting").info('Done')
+
+    vo_slam_bot.destroy_node()
+    rclpy.shutdown()
+
+if __name__=='__main__':
+    main()
