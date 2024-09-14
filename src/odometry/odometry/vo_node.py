@@ -38,7 +38,7 @@ class VisualOdometryNode(Node):
             [0.000, 0.000, 0.000, 1.000]
             ])
 
-        self.Visual_Odom = VisualOdometry(self.k, self.optical_to_base_transform)
+        self.Visual_Odom = VisualOdometry(self.k, self.optical_to_base_transform,nfeatures=200)
 
         # Path message
         self.path_msg = Path()
@@ -80,7 +80,7 @@ class VisualOdometryNode(Node):
             
             
         self.publish_odometry(current_robot_pose,timestamp)
-        self.publish_path([float(i) for i in current_robot_pose[-1][:3,3]],timestamp)
+        self.publish_path([float(i) for i in current_robot_pose[:3,3]],timestamp)
         self.last_timestamp = timestamp
 
         
