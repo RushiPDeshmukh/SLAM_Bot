@@ -27,7 +27,7 @@ class controller(Node):
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
         self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
         
-        self.publishTransform = False
+        self.publishTransform = True
         self.visualize_path=True
         if self.visualize_path:        
             self.__odom_path_publisher = self.create_publisher(Path,'odom_path',10)
@@ -53,8 +53,9 @@ class controller(Node):
 
         self.motor_ppr = 2880
 
-        self.car_controller.setEncoderValues([0,500000,500000,0]) # RL , RR , FR, FL
-
+        self.car_controller.setEncoderValues([0,0,0,0]) # RL , RR , FR, FL
+        # current_encoder_value_ = self.car_controller.getEncoderValues()
+        # self.get_logger().info(f'Intial encoder values RL , RR , FR, FL: {current_encoder_value_}')
         self.joint_state = JointState()
         self.joint_state.header.stamp=self.get_clock().now().to_msg()
         self.joint_state.header.frame_id='base_link'
@@ -69,7 +70,7 @@ class controller(Node):
         
         self.wheel_vel_rolling_avg=[0.0,0.0,0.0,0.0] #[ FL , FR , RL , RR ]
 
-        self.correct_pose_with_filtered_odom = True
+        self.correct_pose_with_filtered_odom = False
         
 
     def cmd_vel_callback(self,msg):
@@ -113,8 +114,8 @@ class controller(Node):
         
         try:
             current_encoder_value_ = self.car_controller.getEncoderValues() # RL , RR , FR, FL
-            current_encoder_value_[1] = 500000 - current_encoder_value_[1]
-            current_encoder_value_[2] = 500000 - current_encoder_value_[2]
+            current_encoder_value_[1] =  - current_encoder_value_[1] # RR
+            current_encoder_value_[2] =  - current_encoder_value_[2] # FR
 
             # convert [ RL , RR , FR, FL ] to [ FL , FR , RL , RR ]
             current_encoder_value = [current_encoder_value_[3],current_encoder_value_[2],current_encoder_value_[0],current_encoder_value_[1]]
@@ -181,15 +182,17 @@ class controller(Node):
         # Update previous odom message
         self.prev_odom = odom_msg
         self.prev_encoder_values = current_encoder_value
-        if current_encoder_value[1] > 40000 or current_encoder_value[3] > 40000 :
-            self.car_controller.setEncoderValues([0,500000,500000,0])
-            self.prev_encoder_values = [0,0,0,0]
-            print("Resetting encoder values!!!!")
+        # if current_encoder_value[1] > 40000 or current_encoder_value[3] > 40000 :
+        #     self.car_controller.setEncoderValues([0,500000,500000,0])
+        #     self.prev_encoder_values = [0,0,0,0]
+        #     print("Resetting encoder values!!!!")
         
     def calculate_odom(self,time_,this_enc_values,prev_enc_values,prev_odom): # 50 Hz
         del_time = (time_-prev_odom.header.stamp.nanosec)*10e-9
         motor_angular_velocities = np.array([self.encoder_to_rad(this_enc_values[0]-prev_enc_values[0]),self.encoder_to_rad(this_enc_values[1]-prev_enc_values[1]),self.encoder_to_rad(this_enc_values[2]-prev_enc_values[2]),self.encoder_to_rad(this_enc_values[3]-prev_enc_values[3])])/del_time
         is_too_fast = abs(motor_angular_velocities)>0.2 # 0.2 rad/sec == 0.485 m/s 
+        # if prev_enc_values != this_enc_values:
+        #     self.get_logger().info(f'--- Encoders = {this_enc_values}, Difference = {this_enc_values[0]-prev_enc_values[0]}, {this_enc_values[1]-prev_enc_values[1]}, {this_enc_values[2]-prev_enc_values[2]}, {this_enc_values[3]-prev_enc_values[3]}')
         if len(np.where(is_too_fast)[0])>0:
             self.get_logger().error(f'Wheel velocity exceeded: [ FL , FR , RL , RR ] =>{np.where(is_too_fast)[0]}')
             motor_angular_velocities[np.where(is_too_fast)[0]]=0.02*np.sign(motor_angular_velocities[np.where(is_too_fast)])
@@ -197,7 +200,7 @@ class controller(Node):
         lin_y = (self.wheel_radius/4)*(-motor_angular_velocities[0]+motor_angular_velocities[1]+motor_angular_velocities[2]-motor_angular_velocities[3])
         ang_z = (self.wheel_radius/(4*(self.L+self.W)))*(-motor_angular_velocities[0]+motor_angular_velocities[1]-motor_angular_velocities[2]+motor_angular_velocities[3])
         # if not(lin_x == 0.0 and lin_y == 0.0 and ang_z == 0.0):
-            # self.get_logger().info(f'-- Vx = {lin_x:.2e} , Vy = {lin_y:.2e}, W = {ang_z:.2e}')
+        #     self.get_logger().info(f'-- Vx = {lin_x:.2e} , Vy = {lin_y:.2e}, W = {ang_z:.2e}')
         prev_yaw = self.get_euler_from_quaternion(prev_odom.pose.pose.orientation)[2]
         pose_x = prev_odom.pose.pose.position.x + del_time*(lin_x*np.cos(prev_yaw)-lin_y*np.sin(prev_yaw))
         pose_y = prev_odom.pose.pose.position.y + del_time*(lin_x*np.sin(prev_yaw)+lin_y*np.cos(prev_yaw))
