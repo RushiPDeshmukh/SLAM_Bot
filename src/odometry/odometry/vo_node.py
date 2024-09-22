@@ -116,7 +116,14 @@ class VisualOdometryNode(Node):
         vo_msg.pose.pose.orientation.y = rotation_quaternion[1]
         vo_msg.pose.pose.orientation.z = rotation_quaternion[2]
         vo_msg.pose.pose.orientation.w = rotation_quaternion[3]
-        
+        vo_msg.pose.covariance = [
+            0.05, 0., 0., 0., 0., 0.,  # x position covariance
+            0., 0.05, 0., 0., 0., 0.,  # y position covariance
+            0., 0., 9999., 0., 0., 0.,  # z position covariance (high, we ignore z)
+            0., 0., 0., 9999., 0., 0.,  # roll covariance (high uncertainty)
+            0., 0., 0., 0., 9999., 0.,  # pitch covariance (high uncertainty)
+            0., 0., 0., 0., 0., 0.01   # yaw covariance (low, trusted)
+        ]
         self.vo_publisher.publish(vo_msg)
 
         if self.publishTransform:
