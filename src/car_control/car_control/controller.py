@@ -27,7 +27,7 @@ class controller(Node):
         self.__odom_tf_broadcaster = TransformBroadcaster(self)
         self.__joint_state_publisher = self.create_publisher(JointState,'joint_state',10)
         
-        self.publishTransform = True
+        self.publishTransform = False
         self.visualize_path=True
         if self.visualize_path:        
             self.__odom_path_publisher = self.create_publisher(Path,'odom_path',10)
@@ -70,7 +70,7 @@ class controller(Node):
         
         self.wheel_vel_rolling_avg=[0.0,0.0,0.0,0.0] #[ FL , FR , RL , RR ]
 
-        self.correct_pose_with_filtered_odom = False
+        self.correct_pose_with_filtered_odom = True
         
 
     def cmd_vel_callback(self,msg):
@@ -142,10 +142,27 @@ class controller(Node):
         odom_msg.header.stamp=now_time_.to_msg()
         odom_msg.pose.pose.position.x = pos_x 
         odom_msg.pose.pose.position.y = pos_y
+        odom_msg.pose.covariance = [
+            0.01, 0., 0., 0., 0., 0., # x pos
+            0., 0.01, 0., 0., 0., 0., # y pos
+            0., 0., 9999., 0., 0., 0., # z pos
+            0., 0., 0., 9999., 0., 0., # roll 
+            0., 0., 0., 0., 9999., 0., # pitch
+            0., 0., 0., 0., 0., 1.5 # yaw
+        ]
+
         odom_msg.pose.pose.orientation = self.get_quaternion_from_euler(0,0,yaw)
         odom_msg.twist.twist.linear.x = v_x
         odom_msg.twist.twist.linear.y = v_y
         odom_msg.twist.twist.angular.z = w_z
+        odom_msg.twist.covariance = [
+            0.01, 0., 0., 0., 0., 0.,   # x velocity covariance (high, not trusted)
+            0., 0.01, 0., 0., 0., 0.,   # y velocity covariance (high, not trusted)
+            0., 0., 9999., 0., 0., 0.,   # z velocity covariance (ignored)
+            0., 0., 0., 9999., 0., 0.,   # roll velocity covariance (ignored)
+            0., 0., 0., 0., 9999., 0.,   # pitch velocity covariance (ignored)
+            0., 0., 0., 0., 0., 0.1     # yaw velocity covariance (low, trusted)
+        ]
         self.__odom_publisher.publish(odom_msg)
         
         # Publish joint states
