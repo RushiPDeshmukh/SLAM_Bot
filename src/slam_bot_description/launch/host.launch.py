@@ -18,6 +18,7 @@ def generate_launch_description():
   model = os.path.join(pkg_share, 'models/slam_bot.urdf')
   rviz_config_file = os.path.join(pkg_share, 'rviz/urdf_config.rviz')
   robot_localization_file_path = os.path.join(pkg_share, 'config/ekf.yaml') 
+  vio_localization_file_path = os.path.join(pkg_share, 'config/ekf_vio.yaml') 
   # Subscribe to the joint states of the robot, and publish the 3D pose of each link.
   start_robot_state_publisher_cmd = Node(
     package='robot_state_publisher',
@@ -71,6 +72,11 @@ def generate_launch_description():
             name="my_dualsense_teleop"
         )  
 
+  vo_frame_saver_node = Node(
+    package='camera_pkg',
+    executable='save_frames'
+  )
+
   # Create the launch description and populate
   ld = LaunchDescription()
 
@@ -81,6 +87,7 @@ def generate_launch_description():
   ld.add_action(start_robot_localization_cmd)
   ld.add_action(start_rviz_cmd)
   ld.add_action(start_visual_odometry)
+  ld.add_action(vo_frame_saver_node)
   ld.add_action(joy_node)
   ld.add_action(tele_op_node)
   return ld
