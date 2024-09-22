@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Grid1
         - /TF1/Frames1
         - /Imu1/Axes properties1
         - /EKF Odometry1/Shape1
@@ -111,7 +112,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 100
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz_default_plugins/TF
@@ -250,7 +251,7 @@ Visualization Manager:
           Value: true
         Value: true
       Enabled: true
-      Keep: 100
+      Keep: 10
       Name: EKF Odometry
       Position Tolerance: 0.10000000149011612
       Shape:
@@ -289,25 +290,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5.16456937789917
+      Distance: 10.449699401855469
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.3131866455078125
-        Y: -0.20665065944194794
-        Z: -0.04861164093017578
+        X: 3.4304866790771484
+        Y: -0.3964579999446869
+        Z: 0.2636023759841919
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4597963094711304
+      Pitch: 1.4947963953018188
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 3.131221055984497
+      Yaw: 3.136220932006836
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 100
