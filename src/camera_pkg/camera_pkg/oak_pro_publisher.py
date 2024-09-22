@@ -30,6 +30,7 @@ class OAK_Pro_Publisher(Node):
         
         #Save first depth frame
         self.first_depth = True
+        self.initial_imu_reading = None
 
         self.bridge = CvBridge()
         
@@ -180,8 +181,12 @@ class OAK_Pro_Publisher(Node):
         rot_vec_original = R.from_quat([rotation_vector.i,rotation_vector.j,rotation_vector.k,rotation_vector.real])
         shift_vec = R.from_euler('xyz',[0.0,-1.5708,0.0])
         shift_vec_1 = R.from_euler('xyz',[0.0,0.0,-1.5708])
-        final_vec = (rot_vec_original*shift_vec*shift_vec_1).as_quat()
-
+        corrected_vector = (rot_vec_original*shift_vec*shift_vec_1)
+        if self.initial_imu_reading is None:
+            self.initial_imu_reading = corrected_vector
+              
+        # final_vec = (corrected_vector.inv()*corrected_vector).as_quat()
+        final_vec = corrected_vector.as_quat()
         # rot_vec_original = R.from_quat([rotation_vector.i,rotation_vector.j,rotation_vector.k,rotation_vector.real])
         # shift_vec = R.from_euler('xyz',[3.14159,0.0,1.5708])
 
@@ -191,6 +196,11 @@ class OAK_Pro_Publisher(Node):
         IMU_msg.orientation.y = -final_vec[1]
         IMU_msg.orientation.z = final_vec[2]
         IMU_msg.orientation.w = final_vec[3]
+        IMU_msg.orientation_covariance = [
+            9999., 0., 0., # roll
+            0., 9999., 0., # pitch
+            0., 0., 0.01   # yaw
+        ]
         IMU_msg.linear_acceleration.x = acc_values.x
         IMU_msg.linear_acceleration.y = acc_values.y
         IMU_msg.linear_acceleration.z = acc_values.z
